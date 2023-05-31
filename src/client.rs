@@ -1,13 +1,15 @@
 use std::time::Duration;
 
+use crate::error::ObsError;
+
 #[derive(Debug)]
 pub struct Client {
     config: Config,
-    inner: reqwest::Client,
+    http_client: reqwest::Client,
 }
 
 impl Client {
-    pub fn new(access_key_id:&str,secret_access_key:&str,endpoint:&str)-> Self { 
+    pub fn new(access_key_id:&str,secret_access_key:&str,endpoint:&str)-> Result<Client, ObsError> { 
         ClientBuilder::new()
         .access_key_id(access_key_id)
         .secret_access_key(secret_access_key)
@@ -85,13 +87,15 @@ impl ClientBuilder {
 
     
 
-    fn build(self) -> Client {
+    fn build(self) -> Result<Client, ObsError> {
         let req_client = reqwest::ClientBuilder::new()
         .timeout(self.config.timeout)
         .build();
-        Client {
-             config: self.config,
-             inner:  req_client.unwrap(),
-        }
+        Ok(
+            Client {
+                config: self.config,
+                http_client:  req_client?,
+           }
+        )
     }
 }
