@@ -1,26 +1,53 @@
-use std::collections::HashMap;
-use hmacsha1::hmac_sha1;
-use chrono::{Utc, TimeZone};
-use rustc_serialize::hex::ToHex;
 use crate::{client::Client, error::ObsError};
+use ::base64::{engine::general_purpose, Engine};
+use chrono::{TimeZone, Utc};
+use hmacsha1::hmac_sha1;
+use rustc_serialize::{base64, hex::ToHex};
+use std::collections::HashMap;
 
 pub const RFC1123: &str = "%a, %d %b %Y %H:%M:%S %Z";
 
 pub trait Authorization {
-    fn auth(method: &str, bucket_name: &str, object_key: &str, params: HashMap<String,String>,headers: HashMap<String, Vec<String>>,host_name:String) -> String;
+    fn auth(
+        &self,
+        method: &str,
+        params: HashMap<String, String>,
+        headers: HashMap<String, Vec<String>>,
+        host_name: String,
+        canonicalized_url: String,
+    ) -> Result<HashMap<String, String>, ObsError>;
 }
 
 impl Authorization for Client {
-    fn auth(method: &str, bucket_name: &str, object_key: &str, params: HashMap<String,String>,headers: HashMap<String, Vec<String>>,host_name:String) -> String {
-        todo!()
+    fn auth(
+        &self,
+        method: &str,
+        params: HashMap<String, String>,
+        headers: HashMap<String, Vec<String>>,
+        host_name: String,
+        canonicalized_url: String,
+    ) -> Result<HashMap<String, String>, ObsError> {
+        
+        let string_to_sign = vec![
+            method,
+            "\n",
+            &attach_headers(headers,true),
+            "\n",
+            &canonicalized_url
+        ].join("");
+        let signature = signature(&string_to_sign, self.config().secret_access_key())?;
+        let h = vec![("Signature".into(), signature)].into_iter().collect();
+        Ok(h)
     }
 }
 
 
+
+
 fn prepare_host_and_date(
     mut headers: HashMap<String, Vec<String>>,
-    host_name:String,
-    is_v4:bool
+    host_name: String,
+    is_v4: bool,
 ) {
     headers.insert("Host".into(), vec![host_name]);
     if let Some(date) = headers.get("x-amz-date") {
@@ -32,7 +59,7 @@ fn prepare_host_and_date(
                     headers.insert("Date".into(), vec![t.format(RFC1123).to_string()]);
                     flag = true;
                 }
-            }else if date[0].ends_with("GMT") {
+            } else if date[0].ends_with("GMT") {
                 headers.insert("Date".into(), vec![date[0].clone()]);
                 flag = true;
             }
@@ -157,12 +184,10 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
     to_sign.join("\n")
 }
 
-
 /// 签名，算法如下:
 /// > Signature = Base64( HMAC-SHA1( YourSecretAccessKeyID, UTF-8-Encoding-Of( StringToSign ) ) )
-fn signature(string_to_sign: &str, sk: &str, region: &str, short_date: &str) -> Result<String,ObsError> {
+fn signature(string_to_sign: &str, sk: &str) -> Result<String, ObsError> {
     let hash = hmac_sha1(sk.as_bytes(), string_to_sign.as_bytes());
-    Ok(
-        hash.to_hex()
-    )
+    let hs = general_purpose::STANDARD.encode(hash);
+    Ok(hs)
 }
