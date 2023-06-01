@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-
+use hmacsha1::hmac_sha1;
 use chrono::{Utc, TimeZone};
-
-use crate::client::Client;
+use rustc_serialize::hex::ToHex;
+use crate::{client::Client, error::ObsError};
 
 pub const RFC1123: &str = "%a, %d %b %Y %H:%M:%S %Z";
 
@@ -17,7 +17,7 @@ impl Authorization for Client {
 }
 
 
-fn prepareHostAndDate(
+fn prepare_host_and_date(
     mut headers: HashMap<String, Vec<String>>,
     host_name:String,
     is_v4:bool
@@ -157,6 +157,12 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
     to_sign.join("\n")
 }
 
-fn signature(string_to_sign: &str, sk: &str, region: &str, short_date: &str) -> String {
-    todo!()
+
+/// 签名，算法如下:
+/// > Signature = Base64( HMAC-SHA1( YourSecretAccessKeyID, UTF-8-Encoding-Of( StringToSign ) ) )
+fn signature(string_to_sign: &str, sk: &str, region: &str, short_date: &str) -> Result<String,ObsError> {
+    let hash = hmac_sha1(sk.as_bytes(), string_to_sign.as_bytes());
+    Ok(
+        hash.to_hex()
+    )
 }

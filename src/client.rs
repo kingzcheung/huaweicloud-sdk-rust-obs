@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::error::ObsError;
+use crate::{error::ObsError, provider::{SecurityProvider, SecurityHolder}};
 
 #[derive(Debug)]
 pub struct Client {
@@ -19,7 +19,10 @@ impl Client {
      pub fn builder() -> ClientBuilder {
         ClientBuilder::new()
     }
+
 }
+
+
 
 #[derive(Debug)]
 pub struct ClientBuilder {
@@ -28,6 +31,7 @@ pub struct ClientBuilder {
 
 #[derive(Debug)]
 struct Config {
+    security_providers: Vec<SecurityHolder>,
     access_key_id: String,
     secret_access_key: String,
     endpoint: String,
@@ -46,6 +50,7 @@ impl ClientBuilder {
     fn new() -> ClientBuilder {
         ClientBuilder {
             config: Config {
+                security_providers: vec![],
                 access_key_id: "".into(),
                 secret_access_key:"".into(),
                 endpoint:"".into(),
@@ -54,6 +59,10 @@ impl ClientBuilder {
                 timeout: Duration::from_secs(3),
             },
         }
+    }
+    pub fn security_providers(mut self, sps: Vec<SecurityHolder>)->ClientBuilder {
+        self.config.security_providers = sps;
+        self
     }
 
     pub fn endpoint<S:ToString>(mut self, value:S)->ClientBuilder {

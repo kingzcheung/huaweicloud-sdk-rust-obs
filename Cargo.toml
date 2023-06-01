@@ -11,3 +11,5 @@ reqwest = {version = "0.11.17", features = ["json"]}
 thiserror = "1.0"
 urlencoding = "2"
 chrono = "0.4"
+hmac-sha1 = "^0.1"
+rustc-serialize = "0.3.24"
