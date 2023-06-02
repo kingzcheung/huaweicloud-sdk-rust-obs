@@ -1,11 +1,10 @@
-use std::time::Duration;
+use std::{time::Duration, collections::HashMap};
 
-use reqwest::{header::HeaderMap, Body, Method, Response};
+use reqwest::{header::{HeaderMap, HeaderValue}, Body, Method, Response};
 
 use crate::{
-    config::{Config, SignatureType},
-    error::ObsError,
-    provider::{SecurityHolder},
+    config::{Config, SignatureType, SecurityHolder},
+    error::ObsError, auth::Authorization,
 };
 
 #[derive(Debug)]
@@ -15,6 +14,7 @@ pub struct Client {
 }
 
 impl Client {
+    /// endpoint 格式: https[http]://obs.cn-north-4.myhuaweicloud.com
     pub fn new<S:ToString>(
         access_key_id: S,
         secret_access_key: S,
@@ -51,6 +51,7 @@ impl Client {
     pub async fn do_action<T>(
         &self,
         method: Method,
+        bucket_name:&str,
         uri: &str,
         with_headers: Option<HeaderMap>,
         body: T,
@@ -58,8 +59,10 @@ impl Client {
     where
         T: Into<Body>,
     {
-        let url = format!("https://{}/{}", self.config().endpoint(), uri);
-        let mut headers = HeaderMap::new();
+        let url = format!("https://{}.{}/{}",bucket_name, self.config().endpoint(), uri);
+
+        let canonicalized_url = self.config().canonicalized_url(bucket_name,uri);
+        let mut headers = self.auth(method.as_str(),bucket_name, HashMap::new(), HashMap::new(), canonicalized_url)?;
         if let Some(wh) = with_headers {
             headers.extend(wh);
         }
@@ -72,6 +75,16 @@ impl Client {
             .send()
             .await?;
         Ok(res)
+    }
+
+    /// PUT上传
+    pub async fn put_object(&self, bucket:&str,key:&str, object:&'static [u8]) ->Result<(), ObsError> {
+        let mut with_headers = HeaderMap::new();
+        with_headers.insert("Content-Length", HeaderValue::from_str(format!("{}",object.len()).as_str()).unwrap());
+        let resp = self.do_action(Method::PUT, bucket, key, Some(with_headers), object).await?;
+        let _ = resp.text().await?;
+        
+        Ok(())
     }
 
     
@@ -111,8 +124,19 @@ impl ClientBuilder {
         self
     }
 
+    /// 节点，支持以下三种格式:
+    /// 
+    /// 1. http://your-endpoint
+    /// 2. https://your-endpoint
+    /// 3. your-endpoint
     pub fn endpoint<S: ToString>(mut self, value: S) -> ClientBuilder {
-        self.config.set_endpoint(value.to_string());
+        let mut value = value.to_string();
+        if value.starts_with("https://") {
+            value = value.replace("https://", "");
+        }else if value.starts_with("http://") {
+            value = value.replace("http://","");
+        }
+        self.config.set_endpoint(value);
         self
     }
 
@@ -140,7 +164,7 @@ impl ClientBuilder {
         self
     }
 
-    fn build(self) -> Result<Client, ObsError> {
+    pub fn build(self) -> Result<Client, ObsError> {
         let req_client = reqwest::ClientBuilder::new()
             .timeout(self.config.timeout())
             .build();

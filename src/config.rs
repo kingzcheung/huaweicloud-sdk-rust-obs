@@ -1,13 +1,38 @@
 use std::time::Duration;
 
-use crate::provider::SecurityHolder;
-
-
 #[derive(Debug)]
 pub enum SignatureType {
     V2,
     V4,
     OBS,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct SecurityHolder {
+    ak: String,
+    sk: String,
+    security_token: String,
+}
+impl SecurityHolder {
+    pub fn new(ak: String, sk: String, security_token: String) -> Self {
+        Self {
+            ak,
+            sk,
+            security_token,
+        }
+    }
+
+    pub fn ak(&self) -> &str {
+        self.ak.as_ref()
+    }
+
+    pub fn sk(&self) -> &str {
+        self.sk.as_ref()
+    }
+
+    pub fn security_token(&self) -> &str {
+        self.security_token.as_ref()
+    }
 }
 
 #[derive(Debug)]
@@ -25,13 +50,19 @@ impl Config {
         self.security_providers.as_ref()
     }
 
-
-    pub fn canonicalized_url(&self, bucket_name: &str) -> String {
+    /// 暂时不支持自定义域名
+    pub fn canonicalized_url(&self, bucket_name: &str, uri: &str) -> String {
         if bucket_name.is_empty() {
             String::from("/")
         } else {
             match self.signature_type {
-                SignatureType::V2 | SignatureType::OBS => format!("/{}/", bucket_name),
+                SignatureType::V2 | SignatureType::OBS => {
+                    if uri.is_empty() {
+                        format!("/{}/", bucket_name)
+                    } else {
+                        format!("/{}/{}", bucket_name, uri)
+                    }
+                }
                 SignatureType::V4 => String::from("/"),
             }
         }
@@ -60,7 +91,6 @@ impl Config {
     pub(crate) fn set_signature_type(&mut self, signature_type: SignatureType) {
         self.signature_type = signature_type;
     }
-
 
     pub(crate) fn timeout(&self) -> Duration {
         self.timeout

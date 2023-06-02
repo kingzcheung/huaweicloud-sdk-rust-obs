@@ -1,11 +1,11 @@
-use crate::{client::Client, error::ObsError};
+use crate::{client::Client, config::SignatureType, error::ObsError};
 use ::base64::{engine::general_purpose, Engine};
 use chrono::{TimeZone, Utc};
 use hmacsha1::hmac_sha1;
-use rustc_serialize::{base64, hex::ToHex};
-use std::collections::HashMap;
+use reqwest::header::{HeaderMap, HeaderValue, HeaderName};
+use std::{collections::HashMap, str::FromStr};
 
-pub const RFC1123: &str = "%a, %d %b %Y %H:%M:%S %Z";
+const RFC1123 :&str = "%a, %d %b %Y %H:%M:%S GMT";
 
 pub trait Authorization {
     fn signature(
@@ -19,10 +19,11 @@ pub trait Authorization {
     fn auth(
         &self,
         method: &str,
+        bucket:&str,
         params: HashMap<String, String>,
         headers: HashMap<String, Vec<String>>,
         canonicalized_url: String,
-    ) -> Result<HashMap<String, String>, ObsError>;
+    ) -> Result<HeaderMap, ObsError>;
 }
 
 impl Authorization for Client {
@@ -33,14 +34,17 @@ impl Authorization for Client {
         headers: HashMap<String, Vec<String>>,
         canonicalized_url: String,
     ) -> Result<String, ObsError> {
+        let attach_headers = attach_headers(headers, true);
+
         let string_to_sign = vec![
-            method,
+            method, //HTTP-Verb
             "\n",
-            &attach_headers(headers, true),
+            &attach_headers, // Content-MD5 \n Content-Type \n
             "\n",
             &canonicalized_url,
         ]
         .join("");
+
         let security = self.security();
         match security {
             Some(s) => {
@@ -54,16 +58,33 @@ impl Authorization for Client {
     fn auth(
         &self,
         method: &str,
+        bucket:&str,
         params: HashMap<String, String>,
-        headers: HashMap<String, Vec<String>>,
+        mut headers: HashMap<String, Vec<String>>,
         canonicalized_url: String,
-    ) -> Result<HashMap<String, String>, ObsError> {
-        let sign = self.signature(method, params, headers, canonicalized_url)?;
+    ) -> Result<HeaderMap, ObsError> {
+        let is_v4 = matches!(self.config().signature_type, SignatureType::V4);
+        headers.insert("Host".into(), vec![format!("{}.{}",bucket,self.config().endpoint())]);
+
+        prepare_host_and_date(&mut headers, self.config().endpoint(), is_v4);
+
+        let sign = self.signature(method, params, headers.clone(), canonicalized_url)?;
         let security = self.security();
         match security {
             Some(s) => {
+                
                 let value = format!("OBS {}:{}", s.ak(), sign);
-                let h = vec![("Authorization".into(), value)].into_iter().collect();
+                let mut h = HeaderMap::new();
+                h.insert(
+                    "Authorization",
+                    HeaderValue::from_str(value.as_str()).unwrap(),
+                );
+                for (key, value) in headers.iter() {
+                    h.insert(
+                        HeaderName::from_str(key).unwrap(),
+                        HeaderValue::from_str(&value.join(",")).unwrap(),
+                    );
+                }
                 Ok(h)
             }
             None => Err(ObsError::Security),
@@ -72,11 +93,10 @@ impl Authorization for Client {
 }
 
 fn prepare_host_and_date(
-    mut headers: HashMap<String, Vec<String>>,
-    host_name: String,
+    headers: &mut HashMap<String, Vec<String>>,
+    host_name: &str,
     is_v4: bool,
 ) {
-    headers.insert("Host".into(), vec![host_name]);
     if let Some(date) = headers.get("x-amz-date") {
         let mut flag = false;
         if date.len() == 1 {
@@ -100,42 +120,42 @@ fn prepare_host_and_date(
     }
 }
 
-fn encode_headers(headers: HashMap<String, Vec<String>>) -> HashMap<String, Vec<String>> {
-    headers
-        .into_iter()
-        .map(|(key, values)| {
-            (
-                key,
-                values
-                    .iter()
-                    .map(|v| urlencoding::encode(v).to_string())
-                    .collect::<Vec<String>>(),
-            )
-        })
-        .collect::<HashMap<String, Vec<String>>>()
-}
+// fn encode_headers(headers: HashMap<String, Vec<String>>) -> HashMap<String, Vec<String>> {
+//     headers
+//         .into_iter()
+//         .map(|(key, values)| {
+//             (
+//                 key,
+//                 values
+//                     .iter()
+//                     .map(|v| urlencoding::encode(v).to_string())
+//                     .collect::<Vec<String>>(),
+//             )
+//         })
+//         .collect::<HashMap<String, Vec<String>>>()
+// }
 
-fn signature_header(
-    headers: HashMap<String, Vec<String>>,
-) -> (Vec<String>, HashMap<String, Vec<String>>) {
-    let mut signed_headers = vec![];
-    let mut headers2 = HashMap::with_capacity(headers.len());
-    for (key, value) in headers {
-        let key2 = key.trim().to_lowercase();
-        if !key2.is_empty() {
-            signed_headers.push(key2.clone());
-            headers2.insert(key2, value);
-        }
-    }
-    signed_headers.sort();
-    (signed_headers, headers2)
-}
+// fn signature_header(
+//     headers: HashMap<String, Vec<String>>,
+// ) -> (Vec<String>, HashMap<String, Vec<String>>) {
+//     let mut signed_headers = vec![];
+//     let mut headers2 = HashMap::with_capacity(headers.len());
+//     for (key, value) in headers {
+//         let key2 = key.trim().to_lowercase();
+//         if !key2.is_empty() {
+//             signed_headers.push(key2.clone());
+//             headers2.insert(key2, value);
+//         }
+//     }
+//     signed_headers.sort();
+//     (signed_headers, headers2)
+// }
 
-fn credential(ak: &str, region: &str, short_date: &str) -> (String, String) {
-    let scope = format!("{}/{}/{}/{}", short_date, region, "s3", "aws4_request");
-    // return fmt.Sprintf("%s/%s", ak, scope), scope
-    (format!("{}/{}", ak, &scope), scope)
-}
+// fn credential(ak: &str, region: &str, short_date: &str) -> (String, String) {
+//     let scope = format!("{}/{}/{}/{}", short_date, region, "s3", "aws4_request");
+//     // return fmt.Sprintf("%s/%s", ak, scope), scope
+//     (format!("{}/{}", ak, &scope), scope)
+// }
 
 fn string_to_sign(
     keys: Vec<String>,
@@ -178,11 +198,11 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
         .collect::<_>();
     for (key, value) in headers {
         let _key = key.trim().to_lowercase();
-        let prefixheader = if is_obs { "x-amz-" } else { "x-obs-" };
+        let prefix_header = if is_obs { "x-amz-" } else { "x-obs-" };
         if _key == "content-md5"
             || _key == "content-type"
             || _key == "date"
-            || _key.starts_with(prefixheader)
+            || _key.starts_with(prefix_header)
         {
             keys.push(_key.clone());
             _headers.insert(_key, value);
@@ -199,10 +219,9 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
     let date_camel_header = if is_obs { "X-obs-Date" } else { "X-Amz-Date" };
     let data_header = date_camel_header.to_lowercase();
 
-    if _headers.contains_key("Date")
-        && (_headers.contains_key(&data_header) || _headers.contains_key(date_camel_header))
+    if (_headers.contains_key(&data_header) || _headers.contains_key(date_camel_header))
     {
-        _headers.insert(date_camel_header.into(), vec![]);
+        _headers.insert(date_camel_header.into(), vec![rfc_1123()]);
     }
 
     keys.sort();
@@ -217,4 +236,11 @@ fn signature(string_to_sign: &str, sk: &str) -> Result<String, ObsError> {
     let hash = hmac_sha1(sk.as_bytes(), string_to_sign.as_bytes());
     let hs = general_purpose::STANDARD.encode(hash);
     Ok(hs)
+}
+
+
+
+fn rfc_1123() -> String {
+    let date = Utc::now().format(RFC1123).to_string();
+    date
 }
