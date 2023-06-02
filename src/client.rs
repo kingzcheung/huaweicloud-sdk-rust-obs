@@ -1,8 +1,11 @@
 use std::time::Duration;
 
+use reqwest::{header::HeaderMap, Body, Method, Response};
+
 use crate::{
+    config::{Config, SignatureType},
     error::ObsError,
-    provider::{SecurityHolder, SecurityProvider},
+    provider::{SecurityHolder},
 };
 
 #[derive(Debug)]
@@ -12,17 +15,30 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(
-        access_key_id: &str,
-        secret_access_key: &str,
+    pub fn new<S:ToString>(
+        access_key_id: S,
+        secret_access_key: S,
         endpoint: &str,
     ) -> Result<Client, ObsError> {
         ClientBuilder::new()
-            .access_key_id(access_key_id)
-            .secret_access_key(secret_access_key)
+            .security_provider(access_key_id, secret_access_key)
             .endpoint(endpoint)
             .build()
     }
+
+    pub fn security(&self) ->Option<SecurityHolder> {
+        if !self.config().security_providers().is_empty() {
+            for sh in self.config().security_providers() {
+                if !sh.sk().is_empty() && !sh.ak().is_empty() {
+                    return Some(sh.clone());
+                }
+            }
+            None
+        }else {
+            None
+        }
+    }
+
     pub fn builder() -> ClientBuilder {
         ClientBuilder::new()
     }
@@ -30,51 +46,40 @@ impl Client {
     pub fn config(&self) -> &Config {
         &self.config
     }
+
+    
+    pub async fn do_action<T>(
+        &self,
+        method: Method,
+        uri: &str,
+        with_headers: Option<HeaderMap>,
+        body: T,
+    ) -> Result<Response, ObsError>
+    where
+        T: Into<Body>,
+    {
+        let url = format!("https://{}/{}", self.config().endpoint(), uri);
+        let mut headers = HeaderMap::new();
+        if let Some(wh) = with_headers {
+            headers.extend(wh);
+        }
+
+        let res = self
+            .http_client
+            .request(method, url)
+            .headers(headers)
+            .body(body)
+            .send()
+            .await?;
+        Ok(res)
+    }
+
+    
 }
 
 #[derive(Debug)]
 pub struct ClientBuilder {
     config: Config,
-}
-
-#[derive(Debug)]
-pub enum SignatureType {
-    V2,
-    V4,
-    OBS,
-}
-
-#[derive(Debug)]
-pub struct Config {
-    security_providers: Vec<SecurityHolder>,
-    access_key_id: String,
-    secret_access_key: String,
-    endpoint: String,
-    is_secure: bool,
-    region: String,
-    timeout: Duration,
-    signature_type: SignatureType,
-}
-
-impl Config {
-    pub fn security_providers(&self) -> &[SecurityHolder] {
-        self.security_providers.as_ref()
-    }
-
-    pub fn secret_access_key(&self) -> &str {
-        self.secret_access_key.as_ref()
-    }
-
-    pub fn canonicalized_url(&self, bucket_name: &str) -> String {
-        if bucket_name == "" {
-            String::from("/")
-        } else {
-            match self.signature_type {
-                SignatureType::V2 | SignatureType::OBS => format!("/{}/", bucket_name),
-                SignatureType::V4 => String::from("/"),
-            }
-        }
-    }
 }
 
 impl Default for ClientBuilder {
@@ -88,8 +93,6 @@ impl ClientBuilder {
         ClientBuilder {
             config: Config {
                 security_providers: vec![],
-                access_key_id: "".into(),
-                secret_access_key: "".into(),
                 endpoint: "".into(),
                 is_secure: false,
                 region: "".into(),
@@ -98,43 +101,48 @@ impl ClientBuilder {
             },
         }
     }
+    pub fn signature_type(mut self, st: SignatureType) -> ClientBuilder {
+        self.config.set_signature_type(st);
+        self
+    }
+
     pub fn security_providers(mut self, sps: Vec<SecurityHolder>) -> ClientBuilder {
-        self.config.security_providers = sps;
+        self.config.set_security_providers(sps);
         self
     }
 
     pub fn endpoint<S: ToString>(mut self, value: S) -> ClientBuilder {
-        self.config.endpoint = value.to_string();
-        self
-    }
-    pub fn access_key_id<S: ToString>(mut self, value: S) -> ClientBuilder {
-        self.config.access_key_id = value.to_string();
+        self.config.set_endpoint(value.to_string());
         self
     }
 
-    pub fn secret_access_key<S: ToString>(mut self, value: S) -> ClientBuilder {
-        self.config.secret_access_key = value.to_string();
+    pub fn security_provider<S: ToString>(mut self, ak: S,sk:S) -> ClientBuilder {
+        self.config.security_providers.push(
+            SecurityHolder::new(ak.to_string(), sk.to_string(), "".to_string())
+        );
         self
     }
+
+
 
     pub fn timeout(mut self, duration: Duration) -> ClientBuilder {
-        self.config.timeout = duration;
+        self.config.set_timeout(duration);
         self
     }
 
     pub fn region<S: ToString>(mut self, value: S) -> ClientBuilder {
-        self.config.region = value.to_string();
+        self.config.set_region(value.to_string());
         self
     }
 
     pub fn is_secure(mut self, value: bool) -> ClientBuilder {
-        self.config.is_secure = value;
+        self.config.set_is_secure(value);
         self
     }
 
     fn build(self) -> Result<Client, ObsError> {
         let req_client = reqwest::ClientBuilder::new()
-            .timeout(self.config.timeout)
+            .timeout(self.config.timeout())
             .build();
         Ok(Client {
             config: self.config,

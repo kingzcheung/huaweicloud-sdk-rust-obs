@@ -1,10 +1,8 @@
-use std::sync::Mutex;
-
 pub trait SecurityProvider {
     fn security(&self) -> SecurityHolder;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default,Clone)]
 pub struct SecurityHolder {
     ak: String,
     sk: String,
@@ -18,6 +16,18 @@ impl SecurityHolder {
             sk,
             security_token,
         }
+    }
+
+    pub fn ak(&self) -> &str {
+        self.ak.as_ref()
+    }
+
+    pub fn sk(&self) -> &str {
+        self.sk.as_ref()
+    }
+
+    pub fn security_token(&self) -> &str {
+        self.security_token.as_ref()
     }
 }
 

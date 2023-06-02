@@ -8,41 +8,68 @@ use std::collections::HashMap;
 pub const RFC1123: &str = "%a, %d %b %Y %H:%M:%S %Z";
 
 pub trait Authorization {
+    fn signature(
+        &self,
+        method: &str,
+        params: HashMap<String, String>,
+        headers: HashMap<String, Vec<String>>,
+        canonicalized_url: String,
+    ) -> Result<String, ObsError>;
+
     fn auth(
         &self,
         method: &str,
         params: HashMap<String, String>,
         headers: HashMap<String, Vec<String>>,
-        host_name: String,
         canonicalized_url: String,
     ) -> Result<HashMap<String, String>, ObsError>;
 }
 
 impl Authorization for Client {
+    fn signature(
+        &self,
+        method: &str,
+        params: HashMap<String, String>,
+        headers: HashMap<String, Vec<String>>,
+        canonicalized_url: String,
+    ) -> Result<String, ObsError> {
+        let string_to_sign = vec![
+            method,
+            "\n",
+            &attach_headers(headers, true),
+            "\n",
+            &canonicalized_url,
+        ]
+        .join("");
+        let security = self.security();
+        match security {
+            Some(s) => {
+                let signature = signature(&string_to_sign, s.sk())?;
+                Ok(signature)
+            }
+            None => Err(ObsError::Security),
+        }
+    }
+
     fn auth(
         &self,
         method: &str,
         params: HashMap<String, String>,
         headers: HashMap<String, Vec<String>>,
-        host_name: String,
         canonicalized_url: String,
     ) -> Result<HashMap<String, String>, ObsError> {
-        
-        let string_to_sign = vec![
-            method,
-            "\n",
-            &attach_headers(headers,true),
-            "\n",
-            &canonicalized_url
-        ].join("");
-        let signature = signature(&string_to_sign, self.config().secret_access_key())?;
-        let h = vec![("Signature".into(), signature)].into_iter().collect();
-        Ok(h)
+        let sign = self.signature(method, params, headers, canonicalized_url)?;
+        let security = self.security();
+        match security {
+            Some(s) => {
+                let value = format!("OBS {}:{}", s.ak(), sign);
+                let h = vec![("Authorization".into(), value)].into_iter().collect();
+                Ok(h)
+            }
+            None => Err(ObsError::Security),
+        }
     }
 }
-
-
-
 
 fn prepare_host_and_date(
     mut headers: HashMap<String, Vec<String>>,
@@ -124,7 +151,7 @@ fn string_to_sign(
         if key.starts_with(prefix_header) {
             if key.starts_with(prefix_meta_header) {
                 let header_value = headers.get(&key).unwrap();
-                for (index, val) in header_value.into_iter().enumerate() {
+                for (index, val) in header_value.iter().enumerate() {
                     value.push_str(val.trim());
                     if index != header_value.len() - 1 {
                         value.push(',');
