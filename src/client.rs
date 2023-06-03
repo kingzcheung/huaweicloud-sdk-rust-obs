@@ -1,10 +1,14 @@
-use std::{time::Duration, collections::HashMap};
+use std::{collections::HashMap, time::Duration};
 
-use reqwest::{header::{HeaderMap, HeaderValue}, Body, Method, Response};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Body, Method, Response,
+};
 
 use crate::{
-    config::{Config, SignatureType, SecurityHolder},
-    error::ObsError, auth::Authorization,
+    auth::Authorization,
+    config::{Config, SecurityHolder, SignatureType},
+    error::ObsError, model::object::ObjectMeta,
 };
 
 #[derive(Debug)]
@@ -15,7 +19,7 @@ pub struct Client {
 
 impl Client {
     /// endpoint 格式: https[http]://obs.cn-north-4.myhuaweicloud.com
-    pub fn new<S:ToString>(
+    pub fn new<S: ToString>(
         access_key_id: S,
         secret_access_key: S,
         endpoint: &str,
@@ -26,7 +30,7 @@ impl Client {
             .build()
     }
 
-    pub fn security(&self) ->Option<SecurityHolder> {
+    pub fn security(&self) -> Option<SecurityHolder> {
         if !self.config().security_providers().is_empty() {
             for sh in self.config().security_providers() {
                 if !sh.sk().is_empty() && !sh.ak().is_empty() {
@@ -34,7 +38,7 @@ impl Client {
                 }
             }
             None
-        }else {
+        } else {
             None
         }
     }
@@ -47,47 +51,110 @@ impl Client {
         &self.config
     }
 
-    
     pub async fn do_action<T>(
         &self,
         method: Method,
-        bucket_name:&str,
+        bucket_name: &str,
         uri: &str,
         with_headers: Option<HeaderMap>,
-        body: T,
+        body: Option<T>,
     ) -> Result<Response, ObsError>
     where
         T: Into<Body>,
     {
-        let url = format!("https://{}.{}/{}",bucket_name, self.config().endpoint(), uri);
+        let url = format!(
+            "https://{}.{}/{}",
+            bucket_name,
+            self.config().endpoint(),
+            uri
+        );
 
-        let canonicalized_url = self.config().canonicalized_url(bucket_name,uri);
-        let mut headers = self.auth(method.as_str(),bucket_name, HashMap::new(), HashMap::new(), canonicalized_url)?;
+        let canonicalized_url = self.config().canonicalized_url(bucket_name, uri);
+        let mut headers = self.auth(
+            method.as_str(),
+            bucket_name,
+            HashMap::new(),
+            HashMap::new(),
+            canonicalized_url,
+        )?;
         if let Some(wh) = with_headers {
             headers.extend(wh);
         }
 
-        let res = self
-            .http_client
-            .request(method, url)
-            .headers(headers)
-            .body(body)
-            .send()
-            .await?;
+        let mut req = self.http_client.request(method, url).headers(headers);
+
+        if let Some(body) = body {
+            req = req.body(body);
+        }
+        let res = req.send().await?;
         Ok(res)
     }
 
     /// PUT上传
-    pub async fn put_object(&self, bucket:&str,key:&str, object:&'static [u8]) ->Result<(), ObsError> {
+    pub async fn put_object(
+        &self,
+        bucket: &str,
+        key: &str,
+        object: &'static [u8],
+    ) -> Result<(), ObsError> {
         let mut with_headers = HeaderMap::new();
-        with_headers.insert("Content-Length", HeaderValue::from_str(format!("{}",object.len()).as_str()).unwrap());
-        let resp = self.do_action(Method::PUT, bucket, key, Some(with_headers), object).await?;
+        with_headers.insert(
+            "Content-Length",
+            HeaderValue::from_str(format!("{}", object.len()).as_str()).unwrap(),
+        );
+        let resp = self
+            .do_action(Method::PUT, bucket, key, Some(with_headers), Some(object))
+            .await?;
         let _ = resp.text().await?;
-        
+
+        Ok(())
+    }
+    /// 复制对象
+    pub async fn copy_object(&self, bucket: &str, src: &str, dest: &str) -> Result<(), ObsError> {
+        let mut with_headers = HeaderMap::new();
+        with_headers.insert("x-obs-copy-source", HeaderValue::from_str(src).unwrap());
+
+        let _resp = self
+            .do_action(
+                Method::PUT,
+                bucket,
+                dest,
+                Some(with_headers),
+                None::<String>,
+            )
+            .await?;
+
         Ok(())
     }
 
-    
+    ///获取对象内容
+    pub async fn get_object(&self, bucket: &str, key: &str) -> Result<bytes::Bytes, ObsError> {
+        let resp = self
+            .do_action(Method::GET, bucket, key, None, None::<String>)
+            .await?
+            .bytes()
+            .await?;
+
+        Ok(resp)
+    }
+
+    /// 获取对象元数据
+    pub async fn get_object_metadata(&self, bucket: &str,key: &str)->Result<ObjectMeta,ObsError> {
+        let resp = self
+        .do_action(Method::HEAD, bucket, key, None, None::<String>)
+        .await?;
+        let headers = resp.headers();
+        let mut data = HashMap::with_capacity(headers.len());
+        for (key,val) in headers {
+            data.insert(key.as_str(), val.to_str().unwrap());
+        }
+
+        let header_str = serde_json::to_string(&data).map_err(|_e| ObsError::ParseOrConvert)?;
+
+        let data: ObjectMeta = serde_json::from_str(&header_str).map_err(|_e| ObsError::ParseOrConvert)?;
+        
+        Ok(data)
+    }
 }
 
 #[derive(Debug)]
@@ -125,7 +192,7 @@ impl ClientBuilder {
     }
 
     /// 节点，支持以下三种格式:
-    /// 
+    ///
     /// 1. http://your-endpoint
     /// 2. https://your-endpoint
     /// 3. your-endpoint
@@ -133,21 +200,21 @@ impl ClientBuilder {
         let mut value = value.to_string();
         if value.starts_with("https://") {
             value = value.replace("https://", "");
-        }else if value.starts_with("http://") {
-            value = value.replace("http://","");
+        } else if value.starts_with("http://") {
+            value = value.replace("http://", "");
         }
         self.config.set_endpoint(value);
         self
     }
 
-    pub fn security_provider<S: ToString>(mut self, ak: S,sk:S) -> ClientBuilder {
-        self.config.security_providers.push(
-            SecurityHolder::new(ak.to_string(), sk.to_string(), "".to_string())
-        );
+    pub fn security_provider<S: ToString>(mut self, ak: S, sk: S) -> ClientBuilder {
+        self.config.security_providers.push(SecurityHolder::new(
+            ak.to_string(),
+            sk.to_string(),
+            "".to_string(),
+        ));
         self
     }
-
-
 
     pub fn timeout(mut self, duration: Duration) -> ClientBuilder {
         self.config.set_timeout(duration);

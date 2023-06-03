@@ -8,6 +8,9 @@ pub enum ObsError {
     #[error("ak or sk not provided")]
     Security,
 
+    #[error("parse or convert json error")]
+    ParseOrConvert,
+
     #[error("unknown data store error")]
     Unknown,
 }
