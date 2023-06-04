@@ -9,9 +9,9 @@ edition = "2021"
 tokio = {version = "1.28.0", features = ["full"]}
 reqwest = {version = "0.11.17", features = ["json"]}
 thiserror = "1.0"
-urlencoding = "2"
-chrono = "0.4"
-hmac-sha1 = "^0.1"
+urlencoding = "2.1.2"
+chrono = "0.4.26"
+hmac-sha1 = "0.1.3"
 rustc-serialize = "0.3.24"
 base64 = "0.21.0"
 serde-xml-rs = "0.6.0"

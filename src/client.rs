@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use reqwest::{
-    header::{HeaderMap, HeaderValue},
+    header::{HeaderMap},
     Body, Method, Response,
 };
 
@@ -10,7 +10,6 @@ use crate::{
     bucket::Bucket,
     config::{Config, SecurityHolder, SignatureType},
     error::ObsError,
-    model::object::ObjectMeta,
 };
 
 #[derive(Debug)]
@@ -78,6 +77,43 @@ impl Client {
         let mut headers = self.auth(
             method.as_str(),
             bucket_name,
+            HashMap::new(),
+            HashMap::new(),
+            canonicalized_url,
+        )?;
+        if let Some(wh) = with_headers {
+            headers.extend(wh);
+        }
+
+        let mut req = self.http_client.request(method, url).headers(headers);
+
+        if let Some(body) = body {
+            req = req.body(body);
+        }
+        let res = req.send().await?;
+        Ok(res)
+    }
+
+    pub async fn do_action_without_bucket_name<T>(
+        &self,
+        method: Method,
+        uri: &str,
+        with_headers: Option<HeaderMap>,
+        body: Option<T>,
+    ) -> Result<Response, ObsError>
+    where
+        T: Into<Body>,
+    {
+        let url = format!(
+            "https://{}/{}",
+            self.config().endpoint(),
+            uri
+        );
+
+        let canonicalized_url = self.config().canonicalized_url("", uri);
+        let mut headers = self.auth(
+            method.as_str(),
+            "",
             HashMap::new(),
             HashMap::new(),
             canonicalized_url,

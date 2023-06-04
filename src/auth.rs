@@ -30,7 +30,7 @@ impl Authorization for Client {
     fn signature(
         &self,
         method: &str,
-        params: HashMap<String, String>,
+        _params: HashMap<String, String>,
         headers: HashMap<String, Vec<String>>,
         canonicalized_url: String,
     ) -> Result<String, ObsError> {
@@ -64,7 +64,11 @@ impl Authorization for Client {
         canonicalized_url: String,
     ) -> Result<HeaderMap, ObsError> {
         let is_v4 = matches!(self.config().signature_type, SignatureType::V4);
-        headers.insert("Host".into(), vec![format!("{}.{}",bucket,self.config().endpoint())]);
+        if !bucket.is_empty() {
+            headers.insert("Host".into(), vec![format!("{}.{}",bucket,self.config().endpoint())]);
+        }else {
+            headers.insert("Host".into(), vec![self.config().endpoint().to_string()]);
+        }
 
         prepare_host_and_date(&mut headers, self.config().endpoint(), is_v4);
 
@@ -94,7 +98,7 @@ impl Authorization for Client {
 
 fn prepare_host_and_date(
     headers: &mut HashMap<String, Vec<String>>,
-    host_name: &str,
+    _host_name: &str,
     is_v4: bool,
 ) {
     if let Some(date) = headers.get("x-amz-date") {
@@ -219,7 +223,7 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
     let date_camel_header = if is_obs { "X-obs-Date" } else { "X-Amz-Date" };
     let data_header = date_camel_header.to_lowercase();
 
-    if (_headers.contains_key(&data_header) || _headers.contains_key(date_camel_header))
+    if _headers.contains_key(&data_header) || _headers.contains_key(date_camel_header)
     {
         _headers.insert(date_camel_header.into(), vec![rfc_1123()]);
     }
