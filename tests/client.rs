@@ -1,6 +1,6 @@
 use std::env;
 
-use huaweicloud_sdk_rust_obs::{client, error::ObsError};
+use huaweicloud_sdk_rust_obs::{client, error::ObsError, object::ObjectTrait};
 
 #[tokio::test]
 async fn test_put_object() -> Result<(), ObsError> {

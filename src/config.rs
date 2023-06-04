@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum SignatureType {
     V2,
     V4,
@@ -35,7 +35,7 @@ impl SecurityHolder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Config {
     pub(crate) security_providers: Vec<SecurityHolder>,
     pub(crate) endpoint: String,
