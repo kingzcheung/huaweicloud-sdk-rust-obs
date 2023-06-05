@@ -34,3 +34,12 @@ async fn test_copy_object()->Result<(), ObsError> {
     obs.delete_object(DEFAULT_BUCKET_NAME, dest).await?;
     Ok(())
 }
+
+#[tokio::test]
+async fn test_get_object()->Result<(),ObsError> {
+    let obs = create_obs_client()?;
+    let key = "obs-client-key.jpeg";
+    let data = obs.get_object(DEFAULT_BUCKET_NAME, key).await?;
+    dbg!(data);
+    Ok(())
+}
