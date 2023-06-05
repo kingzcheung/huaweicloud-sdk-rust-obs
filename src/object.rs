@@ -3,10 +3,15 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Method,
+    Method, StatusCode,
 };
+use urlencoding::encode;
 
-use crate::{client::Client, error::ObsError, model::object::ObjectMeta};
+use crate::{
+    client::Client,
+    error::ObsError,
+    model::{bucket::copy_object::CopyObjectResponse, object::ObjectMeta, ErrorResponse},
+};
 
 #[async_trait]
 pub trait ObjectTrait {
@@ -19,9 +24,17 @@ pub trait ObjectTrait {
     ) -> Result<(), ObsError>;
 
     /// 复制对象
-    async fn copy_object(&self, bucket: &str, src: &str, dest: &str) -> Result<(), ObsError>;
+    async fn copy_object(
+        &self,
+        bucket: &str,
+        src: &str,
+        dest: &str,
+    ) -> Result<CopyObjectResponse, ObsError>;
 
-    ///获取对象内容
+    /// 删除对象
+    async fn delete_object(&self, bucket: &str, key: &str) -> Result<(), ObsError>;
+
+    /// 获取对象内容
     async fn get_object(&self, bucket: &str, key: &str) -> Result<bytes::Bytes, ObsError>;
 
     /// 获取对象元数据
@@ -51,11 +64,23 @@ impl ObjectTrait for Client {
     }
 
     /// 复制对象
-    async fn copy_object(&self, bucket: &str, src: &str, dest: &str) -> Result<(), ObsError> {
+    async fn copy_object(
+        &self,
+        bucket: &str,
+        src: &str,
+        dest: &str,
+    ) -> Result<CopyObjectResponse, ObsError> {
         let mut with_headers = HeaderMap::new();
-        with_headers.insert("x-obs-copy-source", HeaderValue::from_str(src).unwrap());
+        let dest = dest.trim_start_matches('/');
+        let src = src.trim_start_matches('/');
+        let src = encode(src);
+        let copy_source = format!("/{}/{}", bucket, src);
+        with_headers.insert(
+            "x-obs-copy-source",
+            HeaderValue::from_str(&copy_source).unwrap(),
+        );
 
-        let _resp = self
+        let resp = self
             .do_action(
                 Method::PUT,
                 bucket,
@@ -64,7 +89,29 @@ impl ObjectTrait for Client {
                 None::<String>,
             )
             .await?;
+        let status = resp.status();
+        let text = resp.text().await?;
+        match status {
+            StatusCode::OK => {
+                let r: CopyObjectResponse = serde_xml_rs::from_str(&text)?;
+                Ok(r)
+            }
+            StatusCode::FORBIDDEN => {
+                let er: ErrorResponse = serde_xml_rs::from_str(&text)?;
+                Err(ObsError::Response {
+                    status: StatusCode::FORBIDDEN,
+                    message: er.message,
+                })
+            }
+            _ => Err(ObsError::Unknown),
+        }
+    }
 
+    /// 删除对象
+    async fn delete_object(&self, bucket: &str, key: &str) -> Result<(), ObsError> {
+        let _resp = self
+            .do_action(Method::DELETE, bucket, key, None, None::<String>)
+            .await?;
         Ok(())
     }
 

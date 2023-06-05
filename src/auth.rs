@@ -45,6 +45,8 @@ impl Authorization for Client {
         ]
         .join("");
 
+        println!("string_to_sign: {:?}",&string_to_sign);
+
         let security = self.security();
         match security {
             Some(s) => {
@@ -73,6 +75,7 @@ impl Authorization for Client {
         prepare_host_and_date(&mut headers, self.config().endpoint(), is_v4);
 
         let sign = self.signature(method, params, headers.clone(), canonicalized_url)?;
+        println!("sign:{}",&sign);
         let security = self.security();
         match security {
             Some(s) => {
@@ -202,7 +205,7 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
         .collect::<_>();
     for (key, value) in headers {
         let _key = key.trim().to_lowercase();
-        let prefix_header = if is_obs { "x-amz-" } else { "x-obs-" };
+        let prefix_header = if is_obs { "x-obs-" } else { "x-amz-"};
         if _key == "content-md5"
             || _key == "content-type"
             || _key == "date"

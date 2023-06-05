@@ -1,9 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
-use reqwest::{
-    header::{HeaderMap},
-    Body, Method, Response,
-};
+use reqwest::{header::HeaderMap, Body, Method, Response};
 
 use crate::{
     auth::Authorization,
@@ -73,17 +70,27 @@ impl Client {
             uri
         );
 
+        let mut auth_headers = HashMap::new();
+        let mut headers = if let Some(wh) = with_headers {
+            for (k, v) in &wh {
+                if let Ok(v) = v.to_str() {
+                    auth_headers.insert(k.as_str().to_string(), vec![v.to_string()]);
+                }
+            }
+            wh
+        } else {
+            HeaderMap::new()
+        };
+
         let canonicalized_url = self.config().canonicalized_url(bucket_name, uri);
-        let mut headers = self.auth(
+        let auth_headers = self.auth(
             method.as_str(),
             bucket_name,
             HashMap::new(),
-            HashMap::new(),
+            auth_headers,
             canonicalized_url,
         )?;
-        if let Some(wh) = with_headers {
-            headers.extend(wh);
-        }
+        headers.extend(auth_headers);
 
         let mut req = self.http_client.request(method, url).headers(headers);
 
@@ -104,11 +111,7 @@ impl Client {
     where
         T: Into<Body>,
     {
-        let url = format!(
-            "https://{}/{}",
-            self.config().endpoint(),
-            uri
-        );
+        let url = format!("https://{}/{}", self.config().endpoint(), uri);
 
         let canonicalized_url = self.config().canonicalized_url("", uri);
         let mut headers = self.auth(
@@ -130,7 +133,6 @@ impl Client {
         let res = req.send().await?;
         Ok(res)
     }
-
 }
 
 #[derive(Debug)]

@@ -5,7 +5,7 @@ use crate::{
     error::ObsError,
     model::bucket::{
         create_bucket::CreateBucketRequest, list_bucket::ListAllMyBuckets,
-        list_object::ListObjectsResponse,
+        list_object::ListObjectsResponse, copy_object::CopyObjectResponse,
     },
     object::ObjectTrait,
 };
@@ -37,7 +37,7 @@ impl<'a> Bucket<'a> {
         self.client.put_object(self.name, key, object).await
     }
 
-    pub async fn copy_object(&self, src: &str, dest: &str) -> Result<(), ObsError> {
+    pub async fn copy_object(&self, src: &str, dest: &str) -> Result<CopyObjectResponse, ObsError> {
         self.client.copy_object(self.name, src, dest).await
     }
 }
