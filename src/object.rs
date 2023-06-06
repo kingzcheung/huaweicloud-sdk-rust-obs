@@ -9,8 +9,8 @@ use urlencoding::encode;
 
 use crate::{
     client::Client,
-    error::ObsError,
-    model::{bucket::copy_object::CopyObjectResponse, object::ObjectMeta, ErrorResponse},
+    error::{ObsError, status_to_response},
+    model::{bucket::copy_object::CopyObjectResult, object::ObjectMeta, ErrorResponse},
 };
 
 #[async_trait]
@@ -29,7 +29,7 @@ pub trait ObjectTrait {
         bucket: &str,
         src: &str,
         dest: &str,
-    ) -> Result<CopyObjectResponse, ObsError>;
+    ) -> Result<CopyObjectResult, ObsError>;
 
     /// 删除对象
     async fn delete_object(&self, bucket: &str, key: &str) -> Result<(), ObsError>;
@@ -69,7 +69,7 @@ impl ObjectTrait for Client {
         bucket: &str,
         src: &str,
         dest: &str,
-    ) -> Result<CopyObjectResponse, ObsError> {
+    ) -> Result<CopyObjectResult, ObsError> {
         let mut with_headers = HeaderMap::new();
         let dest = dest.trim_start_matches('/');
         let src = src.trim_start_matches('/');
@@ -91,20 +91,21 @@ impl ObjectTrait for Client {
             .await?;
         let status = resp.status();
         let text = resp.text().await?;
-        match status {
-            StatusCode::OK => {
-                let r: CopyObjectResponse = serde_xml_rs::from_str(&text)?;
-                Ok(r)
-            }
-            StatusCode::FORBIDDEN => {
-                let er: ErrorResponse = serde_xml_rs::from_str(&text)?;
-                Err(ObsError::Response {
-                    status: StatusCode::FORBIDDEN,
-                    message: er.message,
-                })
-            }
-            _ => Err(ObsError::Unknown),
-        }
+        status_to_response::<CopyObjectResult>(status, text)
+        // match status {
+        //     StatusCode::OK => {
+        //         let r: CopyObjectResponse = serde_xml_rs::from_str(&text)?;
+        //         Ok(r)
+        //     }
+        //     StatusCode::FORBIDDEN => {
+        //         let er: ErrorResponse = serde_xml_rs::from_str(&text)?;
+        //         Err(ObsError::Response {
+        //             status: StatusCode::FORBIDDEN,
+        //             message: er.message,
+        //         })
+        //     }
+        //     _ => Err(ObsError::Unknown),
+        // }
     }
 
     /// 删除对象

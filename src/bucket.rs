@@ -1,14 +1,13 @@
-use reqwest::Method;
-
 use crate::{
     client::Client,
-    error::ObsError,
+    error::{status_to_response, ObsError},
     model::bucket::{
-        create_bucket::CreateBucketRequest, list_bucket::ListAllMyBuckets,
-        list_object::ListObjectsResponse, copy_object::CopyObjectResponse,
+        copy_object::CopyObjectResult, create_bucket::CreateBucketRequest,
+        list_bucket::ListAllMyBuckets, list_object::ListBucketResult,
     },
     object::ObjectTrait,
 };
+use reqwest::Method;
 
 #[async_trait::async_trait]
 pub trait BucketTrait {
@@ -20,7 +19,7 @@ pub trait BucketTrait {
         prefix: Option<&str>,
         marker: Option<&str>,
         max_keys: Option<usize>,
-    ) -> Result<ListObjectsResponse, ObsError>;
+    ) -> Result<ListBucketResult, ObsError>;
 }
 
 pub struct Bucket<'a> {
@@ -37,7 +36,7 @@ impl<'a> Bucket<'a> {
         self.client.put_object(self.name, key, object).await
     }
 
-    pub async fn copy_object(&self, src: &str, dest: &str) -> Result<CopyObjectResponse, ObsError> {
+    pub async fn copy_object(&self, src: &str, dest: &str) -> Result<CopyObjectResult, ObsError> {
         self.client.copy_object(self.name, src, dest).await
     }
 }
@@ -74,7 +73,38 @@ impl BucketTrait for Client {
         prefix: Option<&str>,
         marker: Option<&str>,
         max_keys: Option<usize>,
-    ) -> Result<ListObjectsResponse, ObsError> {
-        unimplemented!()
+    ) -> Result<ListBucketResult, ObsError> {
+        let mut uri = String::from("?");
+        if let Some(p) = prefix {
+            uri.push_str("prefix=");
+            uri.push_str(p);
+        }
+        if let Some(m) = marker {
+            if !uri.ends_with('?') {
+                uri.push('&');
+            }
+            uri.push_str("marker=");
+            uri.push_str(m);
+        }
+
+        if let Some(mk) = max_keys {
+            if !uri.ends_with('?') {
+                uri.push('&');
+            }
+            uri.push_str("key-marker=");
+            uri.push_str(mk.to_string().as_str());
+        }
+
+        if uri.eq("?") {
+            uri = String::new()
+        }
+
+        let resp = self
+            .do_action(Method::GET, name, &uri, None, None::<String>)
+            .await?;
+        let status = resp.status();
+        let text = resp.text().await?;
+
+        status_to_response(status, text)
     }
 }

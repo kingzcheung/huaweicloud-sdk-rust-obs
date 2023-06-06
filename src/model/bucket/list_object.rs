@@ -1,21 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-pub struct ListObjectsResponse {
-    #[serde(rename = "ListBucketResult")]
-    list_bucket_result: ListBucketResult,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct ListBucketResult {
     #[serde(rename = "Name")]
     name: String,
 
-    #[serde(rename = "Prefix")]
-    prefix: String,
-
-    #[serde(rename = "Marker")]
-    marker: String,
+    #[serde(rename = "NextMarker")]
+    next_marker: String,
 
     #[serde(rename = "MaxKeys")]
     max_keys: String,
@@ -24,11 +16,11 @@ pub struct ListBucketResult {
     is_truncated: String,
 
     #[serde(rename = "Contents")]
-    contents: Contents,
+    contents: Vec<Content>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Contents {
+pub struct Content {
     #[serde(rename = "Key")]
     key: String,
 
@@ -45,14 +37,23 @@ pub struct Contents {
     owner: Owner,
 
     #[serde(rename = "StorageClass")]
-    storage_class: String,
+    storage_class: StorageClass,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Owner {
     #[serde(rename = "ID")]
-    id: String,
+    id: Id,
+}
 
-    #[serde(rename = "DisplayName")]
-    display_name: String,
+#[derive(Serialize, Deserialize)]
+pub enum Id {
+    #[serde(rename = "0ac96b898e800f220f36c00d9687b180")]
+    The0Ac96B898E800F220F36C00D9687B180,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum StorageClass {
+    #[serde(rename = "STANDARD")]
+    Standard,
 }
