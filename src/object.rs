@@ -9,46 +9,57 @@ use urlencoding::encode;
 
 use crate::{
     client::Client,
-    error::{ObsError, status_to_response},
+    error::{status_to_response, ObsError},
     model::{bucket::copy_object::CopyObjectResult, object::ObjectMeta},
 };
 
 #[async_trait]
 pub trait ObjectTrait {
     /// PUT上传
-    async fn put_object(
+    async fn put_object<S: AsRef<str> + Send>(
         &self,
-        bucket: &str,
-        key: &str,
-        object: &'static [u8],
+        bucket: S,
+        key: S,
+        object: &[u8],
     ) -> Result<(), ObsError>;
 
     /// 复制对象
-    async fn copy_object(
+    async fn copy_object<S1, S2>(
         &self,
-        bucket: &str,
-        src: &str,
-        dest: &str,
-    ) -> Result<CopyObjectResult, ObsError>;
+        bucket: S1,
+        src: S2,
+        dest: S2,
+    ) -> Result<CopyObjectResult, ObsError>
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send;
 
     /// 删除对象
-    async fn delete_object(&self, bucket: &str, key: &str) -> Result<(), ObsError>;
+    async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError>;
 
     /// 获取对象内容
-    async fn get_object(&self, bucket: &str, key: &str) -> Result<bytes::Bytes, ObsError>;
+    async fn get_object<S: AsRef<str> + Send>(
+        &self,
+        bucket: S,
+        key: S,
+    ) -> Result<bytes::Bytes, ObsError>;
 
     /// 获取对象元数据
-    async fn get_object_metadata(&self, bucket: &str, key: &str) -> Result<ObjectMeta, ObsError>;
+    async fn get_object_metadata<S: AsRef<str> + Send>(
+        &self,
+        bucket: S,
+        key: S,
+    ) -> Result<ObjectMeta, ObsError>;
 }
 
 #[async_trait]
 impl ObjectTrait for Client {
     /// PUT上传
-    async fn put_object(
+    async fn put_object<S: AsRef<str> + Send>(
         &self,
-        bucket: &str,
-        key: &str,
-        object: &'static [u8],
+        bucket: S,
+        key: S,
+        object: &[u8],
     ) -> Result<(), ObsError> {
         let mut with_headers = HeaderMap::new();
         with_headers.insert(
@@ -56,7 +67,13 @@ impl ObjectTrait for Client {
             HeaderValue::from_str(format!("{}", object.len()).as_str()).unwrap(),
         );
         let resp = self
-            .do_action(Method::PUT, bucket, key, Some(with_headers), Some(object))
+            .do_action(
+                Method::PUT,
+                bucket,
+                key,
+                Some(with_headers),
+                Some(object.to_owned()),
+            )
             .await?;
         let _ = resp.text().await?;
 
@@ -64,17 +81,21 @@ impl ObjectTrait for Client {
     }
 
     /// 复制对象
-    async fn copy_object(
+    async fn copy_object<S1, S2>(
         &self,
-        bucket: &str,
-        src: &str,
-        dest: &str,
-    ) -> Result<CopyObjectResult, ObsError> {
+        bucket: S1,
+        src: S2,
+        dest: S2,
+    ) -> Result<CopyObjectResult, ObsError>
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send,
+    {
         let mut with_headers = HeaderMap::new();
-        let dest = dest.trim_start_matches('/');
-        let src = src.trim_start_matches('/');
+        let dest = dest.as_ref().trim_start_matches('/');
+        let src = src.as_ref().trim_start_matches('/');
         let src = encode(src);
-        let copy_source = format!("/{}/{}", bucket, src);
+        let copy_source = format!("/{}/{}", bucket.as_ref(), src);
         with_headers.insert(
             "x-obs-copy-source",
             HeaderValue::from_str(&copy_source).unwrap(),
@@ -109,7 +130,7 @@ impl ObjectTrait for Client {
     }
 
     /// 删除对象
-    async fn delete_object(&self, bucket: &str, key: &str) -> Result<(), ObsError> {
+    async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError> {
         let _resp = self
             .do_action(Method::DELETE, bucket, key, None, None::<String>)
             .await?;
@@ -117,7 +138,11 @@ impl ObjectTrait for Client {
     }
 
     ///获取对象内容
-    async fn get_object(&self, bucket: &str, key: &str) -> Result<bytes::Bytes, ObsError> {
+    async fn get_object<S: AsRef<str> + Send>(
+        &self,
+        bucket: S,
+        key: S,
+    ) -> Result<bytes::Bytes, ObsError> {
         let resp = self
             .do_action(Method::GET, bucket, key, None, None::<String>)
             .await?
@@ -128,7 +153,11 @@ impl ObjectTrait for Client {
     }
 
     /// 获取对象元数据
-    async fn get_object_metadata(&self, bucket: &str, key: &str) -> Result<ObjectMeta, ObsError> {
+    async fn get_object_metadata<S: AsRef<str> + Send>(
+        &self,
+        bucket: S,
+        key: S,
+    ) -> Result<ObjectMeta, ObsError> {
         let resp = self
             .do_action(Method::HEAD, bucket, key, None, None::<String>)
             .await?;

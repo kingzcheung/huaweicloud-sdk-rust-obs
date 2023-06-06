@@ -52,22 +52,24 @@ impl Client {
         &self.config
     }
 
-    pub async fn do_action<T>(
+    pub async fn do_action<T,S1,S2>(
         &self,
         method: Method,
-        bucket_name: &str,
-        uri: &str,
+        bucket_name: S1,
+        uri: S2,
         with_headers: Option<HeaderMap>,
         body: Option<T>,
     ) -> Result<Response, ObsError>
     where
-        T: Into<Body>,
+        T: Into<Body> + Send,
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send,
     {
         let url = format!(
             "https://{}.{}/{}",
-            bucket_name,
+            bucket_name.as_ref(),
             self.config().endpoint(),
-            uri
+            uri.as_ref()
         );
 
         let mut auth_headers = HashMap::new();
@@ -82,10 +84,10 @@ impl Client {
             HeaderMap::new()
         };
 
-        let canonicalized_url = self.config().canonicalized_url(bucket_name, uri);
+        let canonicalized_url = self.config().canonicalized_url(bucket_name.as_ref(), uri.as_ref());
         let auth_headers = self.auth(
             method.as_str(),
-            bucket_name,
+            bucket_name.as_ref(),
             HashMap::new(),
             auth_headers,
             canonicalized_url,
@@ -101,19 +103,20 @@ impl Client {
         Ok(res)
     }
 
-    pub async fn do_action_without_bucket_name<T>(
+    pub async fn do_action_without_bucket_name<T,S1>(
         &self,
         method: Method,
-        uri: &str,
+        uri: S1,
         with_headers: Option<HeaderMap>,
         body: Option<T>,
     ) -> Result<Response, ObsError>
     where
-        T: Into<Body>,
+        T: Into<Body> + Send,
+        S1: AsRef<str> +Send
     {
-        let url = format!("https://{}/{}", self.config().endpoint(), uri);
+        let url = format!("https://{}/{}", self.config().endpoint(), uri.as_ref());
 
-        let canonicalized_url = self.config().canonicalized_url("", uri);
+        let canonicalized_url = self.config().canonicalized_url("", uri.as_ref());
         let mut headers = self.auth(
             method.as_str(),
             "",
