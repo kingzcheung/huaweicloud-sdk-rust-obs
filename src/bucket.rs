@@ -3,7 +3,7 @@ use crate::{
     error::{status_to_response, ObsError},
     model::bucket::{
         copy_object::CopyObjectResult, create_bucket::CreateBucketRequest,
-        list_bucket::{ListAllMyBucketsResult}, list_object::ListBucketResult,
+        list_bucket::ListAllMyBucketsResult, list_object::ListBucketResult,
     },
     object::ObjectTrait,
 };
@@ -12,14 +12,19 @@ use reqwest::Method;
 #[async_trait::async_trait]
 pub trait BucketTrait {
     async fn list_buckets(&self) -> Result<ListAllMyBucketsResult, ObsError>;
-    async fn create_bucket(&self, name: &str, location: Option<&str>) -> Result<(), ObsError>;
-    async fn list_objects(
+    async fn create_bucket<S1, S2>(&self, name: S1, location: Option<S2>) -> Result<(), ObsError>
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send;
+    async fn list_objects<S1>(
         &self,
-        name: &str,
+        name: S1,
         prefix: Option<&str>,
         marker: Option<&str>,
         max_keys: Option<usize>,
-    ) -> Result<ListBucketResult, ObsError>;
+    ) -> Result<ListBucketResult, ObsError>
+    where
+        S1: AsRef<str> + Send;
 }
 
 pub struct Bucket<'a> {
@@ -32,11 +37,17 @@ impl<'a> Bucket<'a> {
         Self { name, client }
     }
 
-    pub async fn put_object(&self, key: &str, object: &'static [u8]) -> Result<(), ObsError> {
-        self.client.put_object(self.name, key, object).await
+    pub async fn put_object<S>(&self, key: S, object: &[u8]) -> Result<(), ObsError>
+    where
+        S: AsRef<str> + Send,
+     {
+        self.client.put_object(self.name, key.as_ref(), object).await
     }
 
-    pub async fn copy_object(&self, src: &str, dest: &str) -> Result<CopyObjectResult, ObsError> {
+    pub async fn copy_object<S1,S2>(&self, src: S1, dest: S2) -> Result<CopyObjectResult, ObsError> 
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send,{
         self.client.copy_object(self.name, src, dest).await
     }
 
@@ -45,7 +56,7 @@ impl<'a> Bucket<'a> {
         prefix: Option<&str>,
         marker: Option<&str>,
         max_keys: Option<usize>,
-    ) -> Result<ListBucketResult, ObsError> {
+    ) -> Result<ListBucketResult, ObsError>{
         self.client
             .list_objects(self.name, prefix, marker, max_keys)
             .await
@@ -54,10 +65,9 @@ impl<'a> Bucket<'a> {
 
 #[async_trait::async_trait]
 impl BucketTrait for Client {
-    
     /// 获取桶列表
     /// # Example
-    /// 
+    ///
     /// ```
     /// let obs = client::Client::builder()
     ///  .endpoint("https://obs.ap-southeast-1.myhuaweicloud.com")
@@ -75,14 +85,14 @@ impl BucketTrait for Client {
     }
 
     /// 创建桶
-    /// 
+    ///
     /// - name: 桶名
     /// - location: 桶地区
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// Basic usage:
-    /// 
+    ///
     /// ```
     /// let obs = client::Client::builder()
     ///  .endpoint("https://obs.ap-southeast-1.myhuaweicloud.com")
@@ -90,9 +100,13 @@ impl BucketTrait for Client {
     ///  .build()?;
     /// let _res = obs.create_bucket("bucket", "cn-north-4").await?;
     /// ```
-    async fn create_bucket(&self, name: &str, location: Option<&str>) -> Result<(), ObsError> {
+    async fn create_bucket<S1, S2>(&self, name: S1, location: Option<S2>) -> Result<(), ObsError>
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send,
+    {
         let body = if let Some(loc) = location {
-            let xml = CreateBucketRequest::new(loc);
+            let xml = CreateBucketRequest::new(loc.as_ref());
             serde_xml_rs::to_string(&xml)?
         } else {
             String::new()
@@ -123,13 +137,16 @@ impl BucketTrait for Client {
     ///  .build()?;
     /// let _res = obs.list_objects('bucket', None, None, None).await?;
     /// ```
-    async fn list_objects(
+    async fn list_objects<S1>(
         &self,
-        name: &str,
+        name: S1,
         prefix: Option<&str>,
         marker: Option<&str>,
         max_keys: Option<usize>,
-    ) -> Result<ListBucketResult, ObsError> {
+    ) -> Result<ListBucketResult, ObsError>
+    where
+        S1: AsRef<str> + Send,
+    {
         let mut uri = String::from("?");
         if let Some(p) = prefix {
             uri.push_str("prefix=");

@@ -24,15 +24,16 @@ pub trait ObjectTrait {
     ) -> Result<(), ObsError>;
 
     /// 复制对象
-    async fn copy_object<S1, S2>(
+    async fn copy_object<S1, S2, S3>(
         &self,
         bucket: S1,
         src: S2,
-        dest: S2,
+        dest: S3,
     ) -> Result<CopyObjectResult, ObsError>
     where
         S1: AsRef<str> + Send,
-        S2: AsRef<str> + Send;
+        S2: AsRef<str> + Send,
+        S3: AsRef<str> + Send;
 
     /// 删除对象
     async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError>;
@@ -81,15 +82,16 @@ impl ObjectTrait for Client {
     }
 
     /// 复制对象
-    async fn copy_object<S1, S2>(
+    async fn copy_object<S1, S2, S3>(
         &self,
         bucket: S1,
         src: S2,
-        dest: S2,
+        dest: S3,
     ) -> Result<CopyObjectResult, ObsError>
     where
         S1: AsRef<str> + Send,
         S2: AsRef<str> + Send,
+        S3: AsRef<str> + Send,
     {
         let mut with_headers = HeaderMap::new();
         let dest = dest.as_ref().trim_start_matches('/');
