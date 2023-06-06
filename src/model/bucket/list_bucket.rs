@@ -1,12 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct ListAllMyBuckets {
-    #[serde(rename = "ListAllMyBucketsResult")]
-    list_all_my_buckets_result: ListAllMyBucketsResult,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct ListAllMyBucketsResult {
     #[serde(rename = "Owner")]
     owner: Owner,
