@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Method, StatusCode,
+    Method,
 };
 use urlencoding::encode;
 
 use crate::{
     client::Client,
     error::{ObsError, status_to_response},
-    model::{bucket::copy_object::CopyObjectResult, object::ObjectMeta, ErrorResponse},
+    model::{bucket::copy_object::CopyObjectResult, object::ObjectMeta},
 };
 
 #[async_trait]

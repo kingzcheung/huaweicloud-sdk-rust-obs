@@ -39,6 +39,13 @@ impl<'a> Bucket<'a> {
     pub async fn copy_object(&self, src: &str, dest: &str) -> Result<CopyObjectResult, ObsError> {
         self.client.copy_object(self.name, src, dest).await
     }
+
+    pub async fn list_objects(&self, prefix: Option<&str>,
+        marker: Option<&str>,
+        max_keys: Option<usize>,
+    ) -> Result<ListBucketResult, ObsError> {
+        self.client.list_objects(self.name, prefix, marker, max_keys).await
+    }
 }
 
 #[async_trait::async_trait]
