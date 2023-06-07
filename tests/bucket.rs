@@ -8,7 +8,8 @@ use common::*;
 async fn test_list_object()->Result<(), ObsError>{
     let obs = create_obs_client()?;
 
-    let _res = obs.list_objects(DEFAULT_BUCKET_NAME, None, None, None).await?;
-    let _ = obs.list_objects(DEFAULT_BUCKET_NAME, None, Some("test"), None).await?;
+    // let _res = obs.list_objects(DEFAULT_BUCKET_NAME, None, None, None).await?;
+    let res = obs.list_objects(DEFAULT_BUCKET_NAME,Some("obs-client-key.jpeg"), None,  Some(10)).await?;
+    dbg!(res);
     Ok(())
 }

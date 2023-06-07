@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Debug)]
 pub struct ListBucketResult {
     #[serde(rename = "Name")]
     pub name: String,
 
     #[serde(rename = "NextMarker")]
-    pub next_marker: String,
+    pub next_marker: Option<String>,
 
     #[serde(rename = "MaxKeys")]
     pub max_keys: String,
@@ -19,7 +19,7 @@ pub struct ListBucketResult {
     pub contents: Vec<Content>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Debug)]
 pub struct Content {
     #[serde(rename = "Key")]
     pub key: String,
@@ -40,19 +40,19 @@ pub struct Content {
     pub storage_class: StorageClass,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Debug)]
 pub struct Owner {
     #[serde(rename = "ID")]
     id: Id,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Debug)]
 pub enum Id {
     #[serde(rename = "0ac96b898e800f220f36c00d9687b180")]
     The0Ac96B898E800F220F36C00D9687B180,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Debug)]
 pub enum StorageClass {
     #[serde(rename = "STANDARD")]
     Standard,

@@ -66,12 +66,7 @@ impl Client {
         S1: AsRef<str> + Send,
         S2: AsRef<str> + Send,
     {
-        let url = format!(
-            "https://{}.{}/{}",
-            bucket_name.as_ref(),
-            self.config().endpoint(),
-            uri.as_ref()
-        );
+    
 
         let mut auth_headers = HashMap::new();
         let mut headers = if let Some(wh) = with_headers {
@@ -85,7 +80,15 @@ impl Client {
             HeaderMap::new()
         };
 
-        let canonicalized_url = self.config().format_urls(bucket_name.as_ref(), uri.as_ref(),params);
+        let (request_uri,canonicalized_url) = self.config().format_urls(bucket_name.as_ref(), uri.as_ref(),params);
+
+        let url = format!(
+            "https://{}.{}/{}",
+            bucket_name.as_ref(),
+            self.config().endpoint(),
+            &request_uri
+        );
+
         let auth_headers = self.auth(
             method.as_str(),
             bucket_name.as_ref(),
@@ -116,9 +119,8 @@ impl Client {
         T: Into<Body> + Send,
         S1: AsRef<str> +Send
     {
-        let url = format!("https://{}/{}", self.config().endpoint(), uri.as_ref());
 
-        let canonicalized_url = self.config().format_urls("", uri.as_ref(),params);
+        let (request_uri,canonicalized_url) = self.config().format_urls("", uri.as_ref(),params);
         let mut headers = self.auth(
             method.as_str(),
             "",
@@ -126,6 +128,8 @@ impl Client {
             HashMap::new(),
             canonicalized_url,
         )?;
+        let url = format!("https://{}/{}", self.config().endpoint(), &request_uri);
+
         if let Some(wh) = with_headers {
             headers.extend(wh);
         }

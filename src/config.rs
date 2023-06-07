@@ -1,5 +1,5 @@
-use std::{time::Duration, collections::HashMap};
 use lazy_static::lazy_static;
+use std::{collections::HashMap, time::Duration};
 
 lazy_static! {
     static ref SUB_RESOURCES: Vec<&'static str> = vec![
@@ -60,7 +60,7 @@ lazy_static! {
     ];
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum SignatureType {
     V2,
     V4,
@@ -95,7 +95,7 @@ impl SecurityHolder {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub(crate) security_providers: Vec<SecurityHolder>,
     pub(crate) endpoint: String,
@@ -106,14 +106,21 @@ pub struct Config {
 }
 
 pub type CanonicalizedResource = String;
+pub type RequestUri = String;
 
 impl Config {
     pub fn security_providers(&self) -> &[SecurityHolder] {
         self.security_providers.as_ref()
     }
 
-    pub fn format_urls(&self, bucket_name: &str, object_key:&str, params: Option<HashMap<String,String>>) -> CanonicalizedResource{
+    pub fn format_urls(
+        &self,
+        bucket_name: &str,
+        object_key: &str,
+        params: Option<HashMap<String, String>>,
+    ) -> (RequestUri, CanonicalizedResource) {
         let mut canonicalized_resource: CanonicalizedResource = String::from("/");
+        let mut uri:RequestUri = String::new();
         if !bucket_name.is_empty() {
             canonicalized_resource.push_str(bucket_name);
             canonicalized_resource.push('/');
@@ -121,10 +128,14 @@ impl Config {
                 SignatureType::V2 | SignatureType::OBS => {
                     if !object_key.is_empty() {
                         canonicalized_resource.push_str(object_key);
+                        uri.push_str(object_key);
                     }
                     if let Some(params) = params {
                         canonicalized_resource.push('?');
-                        for (k,v) in &params {
+                        uri.push('?');
+                        let mut uri_params = vec![];
+                        for (k, v) in &params {
+                            uri_params.push(format!("{}={}",k,v));
                             if SUB_RESOURCES.contains(&k.as_str()) {
                                 if !canonicalized_resource.ends_with('?') {
                                     canonicalized_resource.push('&');
@@ -134,14 +145,19 @@ impl Config {
                                 canonicalized_resource.push_str(v);
                             }
                         }
+                        if !uri_params.is_empty() {
+                            uri.push('?');
+                            uri.push_str(uri_params.join("&").as_str());
+                        }
                     }
-                    
-                    
                 }
-                SignatureType::V4 => canonicalized_resource.push('/')
+                SignatureType::V4 => canonicalized_resource.push('/'),
             }
         }
-        canonicalized_resource.trim_end_matches('?').into()
+        (
+            uri,
+            canonicalized_resource.trim_end_matches('?').into()
+        )
     }
 
     /// 暂时不支持自定义域名
