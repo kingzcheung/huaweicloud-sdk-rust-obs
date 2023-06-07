@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     client::Client,
     error::{status_to_response, ObsError},
@@ -40,14 +42,17 @@ impl<'a> Bucket<'a> {
     pub async fn put_object<S>(&self, key: S, object: &[u8]) -> Result<(), ObsError>
     where
         S: AsRef<str> + Send,
-     {
-        self.client.put_object(self.name, key.as_ref(), object).await
+    {
+        self.client
+            .put_object(self.name, key.as_ref(), object)
+            .await
     }
 
-    pub async fn copy_object<S1,S2>(&self, src: S1, dest: S2) -> Result<CopyObjectResult, ObsError> 
+    pub async fn copy_object<S1, S2>(&self, src: S1, dest: S2) -> Result<CopyObjectResult, ObsError>
     where
         S1: AsRef<str> + Send,
-        S2: AsRef<str> + Send,{
+        S2: AsRef<str> + Send,
+    {
         self.client.copy_object(self.name, src, dest).await
     }
 
@@ -56,7 +61,7 @@ impl<'a> Bucket<'a> {
         prefix: Option<&str>,
         marker: Option<&str>,
         max_keys: Option<usize>,
-    ) -> Result<ListBucketResult, ObsError>{
+    ) -> Result<ListBucketResult, ObsError> {
         self.client
             .list_objects(self.name, prefix, marker, max_keys)
             .await
@@ -77,7 +82,7 @@ impl BucketTrait for Client {
     /// ```
     async fn list_buckets(&self) -> Result<ListAllMyBucketsResult, ObsError> {
         let resp = self
-            .do_action_without_bucket_name(Method::GET, "", None, None::<String>)
+            .do_action_without_bucket_name(Method::GET, "", None,None, None::<String>)
             .await?;
         let status = resp.status();
         let text = resp.text().await?;
@@ -113,7 +118,7 @@ impl BucketTrait for Client {
         };
 
         let _res = self
-            .do_action(Method::PUT, name, "", None, Some(body))
+            .do_action(Method::PUT, name, "", None,None, Some(body))
             .await?;
 
         Ok(())
@@ -147,33 +152,22 @@ impl BucketTrait for Client {
     where
         S1: AsRef<str> + Send,
     {
-        let mut uri = String::from("?");
-        if let Some(p) = prefix {
-            uri.push_str("prefix=");
-            uri.push_str(p);
-        }
+        let mut params = HashMap::new();
         if let Some(m) = marker {
-            if !uri.ends_with('?') {
-                uri.push('&');
-            }
-            uri.push_str("marker=");
-            uri.push_str(m);
+            params.insert("marker".into(), m.into());
         }
 
         if let Some(mk) = max_keys {
-            if !uri.ends_with('?') {
-                uri.push('&');
-            }
-            uri.push_str("key-marker=");
-            uri.push_str(mk.to_string().as_str());
+            params.insert("max-keys".into(), mk.to_string());
         }
 
-        if uri.eq("?") {
-            uri = String::new()
+        if let Some(p) = prefix {
+            params.insert("prefix".into(), p.into());
         }
+
 
         let resp = self
-            .do_action(Method::GET, name, &uri, None, None::<String>)
+            .do_action(Method::GET, name, "", None,Some(params), None::<String>)
             .await?;
         let status = resp.status();
         let text = resp.text().await?;

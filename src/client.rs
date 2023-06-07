@@ -58,6 +58,7 @@ impl Client {
         bucket_name: S1,
         uri: S2,
         with_headers: Option<HeaderMap>,
+        params: Option<HashMap<String,String>>,
         body: Option<T>,
     ) -> Result<Response, ObsError>
     where
@@ -84,7 +85,7 @@ impl Client {
             HeaderMap::new()
         };
 
-        let canonicalized_url = self.config().canonicalized_url(bucket_name.as_ref(), uri.as_ref());
+        let canonicalized_url = self.config().format_urls(bucket_name.as_ref(), uri.as_ref(),params);
         let auth_headers = self.auth(
             method.as_str(),
             bucket_name.as_ref(),
@@ -108,6 +109,7 @@ impl Client {
         method: Method,
         uri: S1,
         with_headers: Option<HeaderMap>,
+        params: Option<HashMap<String,String>>,
         body: Option<T>,
     ) -> Result<Response, ObsError>
     where
@@ -116,7 +118,7 @@ impl Client {
     {
         let url = format!("https://{}/{}", self.config().endpoint(), uri.as_ref());
 
-        let canonicalized_url = self.config().canonicalized_url("", uri.as_ref());
+        let canonicalized_url = self.config().format_urls("", uri.as_ref(),params);
         let mut headers = self.auth(
             method.as_str(),
             "",

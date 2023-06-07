@@ -2,10 +2,11 @@ use crate::{client::Client, config::SignatureType, error::ObsError};
 use ::base64::{engine::general_purpose, Engine};
 use chrono::{TimeZone, Utc};
 use hmacsha1::hmac_sha1;
-use reqwest::header::{HeaderMap, HeaderValue, HeaderName};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::{collections::HashMap, str::FromStr};
 
-const RFC1123 :&str = "%a, %d %b %Y %H:%M:%S GMT";
+const RFC1123: &str = "%a, %d %b %Y %H:%M:%S GMT";
+
 
 pub trait Authorization {
     fn signature(
@@ -19,7 +20,7 @@ pub trait Authorization {
     fn auth(
         &self,
         method: &str,
-        bucket:&str,
+        bucket: &str,
         params: HashMap<String, String>,
         headers: HashMap<String, Vec<String>>,
         canonicalized_url: String,
@@ -45,7 +46,7 @@ impl Authorization for Client {
         ]
         .join("");
 
-        println!("string_to_sign: {:?}",&string_to_sign);
+        println!("string_to_sign: {:?}", &string_to_sign);
 
         let security = self.security();
         match security {
@@ -60,26 +61,28 @@ impl Authorization for Client {
     fn auth(
         &self,
         method: &str,
-        bucket:&str,
+        bucket: &str,
         params: HashMap<String, String>,
         mut headers: HashMap<String, Vec<String>>,
         canonicalized_url: String,
     ) -> Result<HeaderMap, ObsError> {
         let is_v4 = matches!(self.config().signature_type, SignatureType::V4);
         if !bucket.is_empty() {
-            headers.insert("Host".into(), vec![format!("{}.{}",bucket,self.config().endpoint())]);
-        }else {
+            headers.insert(
+                "Host".into(),
+                vec![format!("{}.{}", bucket, self.config().endpoint())],
+            );
+        } else {
             headers.insert("Host".into(), vec![self.config().endpoint().to_string()]);
         }
 
         prepare_host_and_date(&mut headers, self.config().endpoint(), is_v4);
 
         let sign = self.signature(method, params, headers.clone(), canonicalized_url)?;
-        println!("sign:{}",&sign);
+        println!("sign:{}", &sign);
         let security = self.security();
         match security {
             Some(s) => {
-                
                 let value = format!("OBS {}:{}", s.ak(), sign);
                 let mut h = HeaderMap::new();
                 h.insert(
@@ -205,7 +208,7 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
         .collect::<_>();
     for (key, value) in headers {
         let _key = key.trim().to_lowercase();
-        let prefix_header = if is_obs { "x-obs-" } else { "x-amz-"};
+        let prefix_header = if is_obs { "x-obs-" } else { "x-amz-" };
         if _key == "content-md5"
             || _key == "content-type"
             || _key == "date"
@@ -226,8 +229,7 @@ fn attach_headers(headers: HashMap<String, Vec<String>>, is_obs: bool) -> String
     let date_camel_header = if is_obs { "X-obs-Date" } else { "X-Amz-Date" };
     let data_header = date_camel_header.to_lowercase();
 
-    if _headers.contains_key(&data_header) || _headers.contains_key(date_camel_header)
-    {
+    if _headers.contains_key(&data_header) || _headers.contains_key(date_camel_header) {
         _headers.insert(date_camel_header.into(), vec![rfc_1123()]);
     }
 
@@ -244,8 +246,6 @@ fn signature(string_to_sign: &str, sk: &str) -> Result<String, ObsError> {
     let hs = general_purpose::STANDARD.encode(hash);
     Ok(hs)
 }
-
-
 
 fn rfc_1123() -> String {
     let date = Utc::now().format(RFC1123).to_string();

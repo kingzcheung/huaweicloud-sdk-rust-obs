@@ -1,4 +1,64 @@
-use std::time::Duration;
+use std::{time::Duration, collections::HashMap};
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref SUB_RESOURCES: Vec<&'static str> = vec![
+        "CDNNotifyConfiguration",
+        "acl",
+        "append",
+        "attname",
+        "backtosource",
+        "cors",
+        "customdomain",
+        "delete",
+        "deletebucket",
+        "directcoldaccess",
+        "encryption",
+        "inventory",
+        "length",
+        "lifecycle",
+        "location",
+        "logging",
+        "metadata",
+        "mirrorBackToSource",
+        "modify",
+        "name",
+        "notification",
+        "obscompresspolicy",
+        "orchestration",
+        "partNumber",
+        "policy",
+        "position",
+        "quota",
+        "rename",
+        "replication",
+        "response-cache-control",
+        "response-content-disposition",
+        "response-content-encoding",
+        "response-content-language",
+        "response-content-type",
+        "response-expires",
+        "restore",
+        "storageClass",
+        "storagePolicy",
+        "storageinfo",
+        "tagging",
+        "torrent",
+        "truncate",
+        "uploadId",
+        "uploads",
+        "versionId",
+        "versioning",
+        "versions",
+        "website",
+        "x-image-process",
+        "x-image-save-bucket",
+        "x-image-save-object",
+        "x-obs-security-token",
+        "object-lock",
+        "retention"
+    ];
+}
 
 #[derive(Debug,Clone)]
 pub enum SignatureType {
@@ -45,9 +105,43 @@ pub struct Config {
     pub(crate) signature_type: SignatureType,
 }
 
+pub type CanonicalizedResource = String;
+
 impl Config {
     pub fn security_providers(&self) -> &[SecurityHolder] {
         self.security_providers.as_ref()
+    }
+
+    pub fn format_urls(&self, bucket_name: &str, object_key:&str, params: Option<HashMap<String,String>>) -> CanonicalizedResource{
+        let mut canonicalized_resource: CanonicalizedResource = String::from("/");
+        if !bucket_name.is_empty() {
+            canonicalized_resource.push_str(bucket_name);
+            canonicalized_resource.push('/');
+            match self.signature_type {
+                SignatureType::V2 | SignatureType::OBS => {
+                    if !object_key.is_empty() {
+                        canonicalized_resource.push_str(object_key);
+                    }
+                    if let Some(params) = params {
+                        canonicalized_resource.push('?');
+                        for (k,v) in &params {
+                            if SUB_RESOURCES.contains(&k.as_str()) {
+                                if !canonicalized_resource.ends_with('?') {
+                                    canonicalized_resource.push('&');
+                                }
+                                canonicalized_resource.push_str(k);
+                                canonicalized_resource.push('=');
+                                canonicalized_resource.push_str(v);
+                            }
+                        }
+                    }
+                    
+                    
+                }
+                SignatureType::V4 => canonicalized_resource.push('/')
+            }
+        }
+        canonicalized_resource.trim_end_matches('?').into()
     }
 
     /// 暂时不支持自定义域名

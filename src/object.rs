@@ -73,6 +73,7 @@ impl ObjectTrait for Client {
                 bucket,
                 key,
                 Some(with_headers),
+                None,
                 Some(object.to_owned()),
             )
             .await?;
@@ -109,6 +110,7 @@ impl ObjectTrait for Client {
                 bucket,
                 dest,
                 Some(with_headers),
+                None,
                 None::<String>,
             )
             .await?;
@@ -134,7 +136,7 @@ impl ObjectTrait for Client {
     /// 删除对象
     async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError> {
         let _resp = self
-            .do_action(Method::DELETE, bucket, key, None, None::<String>)
+            .do_action(Method::DELETE, bucket, key, None,None, None::<String>)
             .await?;
         Ok(())
     }
@@ -146,7 +148,7 @@ impl ObjectTrait for Client {
         key: S,
     ) -> Result<bytes::Bytes, ObsError> {
         let resp = self
-            .do_action(Method::GET, bucket, key, None, None::<String>)
+            .do_action(Method::GET, bucket, key, None,None, None::<String>)
             .await?
             .bytes()
             .await?;
@@ -161,7 +163,7 @@ impl ObjectTrait for Client {
         key: S,
     ) -> Result<ObjectMeta, ObsError> {
         let resp = self
-            .do_action(Method::HEAD, bucket, key, None, None::<String>)
+            .do_action(Method::HEAD, bucket, key, None,None, None::<String>)
             .await?;
         let headers = resp.headers();
         let mut data = HashMap::with_capacity(headers.len());
