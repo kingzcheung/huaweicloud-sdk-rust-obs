@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize)]
 pub struct CreateBucketRequest {
     #[serde(rename = "CreateBucketConfiguration")]
-    create_bucket_configuration: CreateBucketConfiguration,
+    pub create_bucket_configuration: CreateBucketConfiguration,
 }
 
 impl CreateBucketRequest {

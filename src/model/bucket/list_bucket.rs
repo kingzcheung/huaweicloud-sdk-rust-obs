@@ -12,28 +12,28 @@ pub struct ListAllMyBucketsResult {
 #[derive(Serialize, Deserialize)]
 pub struct Buckets {
     #[serde(rename = "Bucket")]
-    bucket: Vec<Bucket>,
+    pub bucket: Vec<Bucket>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Bucket {
     #[serde(rename = "Name")]
-    name: String,
+    pub name: String,
 
     #[serde(rename = "CreationDate")]
-    creation_date: String,
+    pub creation_date: String,
 
     #[serde(rename = "Location")]
-    location: String,
+    pub location: String,
 
     #[serde(rename = "BucketType")]
-    bucket_type: String,
+    pub bucket_type: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Owner {
     #[serde(rename = "ID")]
-    id: String,
+    pub id: String,
 }
 
 

@@ -4,40 +4,40 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct ListBucketResult {
     #[serde(rename = "Name")]
-    name: String,
+    pub name: String,
 
     #[serde(rename = "NextMarker")]
-    next_marker: String,
+    pub next_marker: String,
 
     #[serde(rename = "MaxKeys")]
-    max_keys: String,
+    pub max_keys: String,
 
     #[serde(rename = "IsTruncated")]
-    is_truncated: String,
+    pub is_truncated: String,
 
     #[serde(rename = "Contents")]
-    contents: Vec<Content>,
+    pub contents: Vec<Content>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Content {
     #[serde(rename = "Key")]
-    key: String,
+    pub key: String,
 
     #[serde(rename = "LastModified")]
-    last_modified: String,
+    pub last_modified: String,
 
     #[serde(rename = "ETag")]
-    e_tag: String,
+    pub e_tag: String,
 
     #[serde(rename = "Size")]
-    size: String,
+    pub size: String,
 
     #[serde(rename = "Owner")]
-    owner: Owner,
+    pub owner: Owner,
 
     #[serde(rename = "StorageClass")]
-    storage_class: StorageClass,
+    pub storage_class: StorageClass,
 }
 
 #[derive(Serialize, Deserialize)]
