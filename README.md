@@ -1,5 +1,7 @@
 # Huaweicloud OBS SDK (unofficial)
 
+[![Crates.io](https://img.shields.io/crates/l/huaweicloud-sdk-rust-obs/0.1.5?style=flat-square)](https://github.com/kingzcheung/huaweicloud-sdk-rust-obs) [![Crates.io](https://img.shields.io/crates/v/huaweicloud-sdk-rust-obs?style=flat-square)](https://crates.io/crates/huaweicloud-sdk-rust-obs) [![docs.rs](https://img.shields.io/docsrs/huaweicloud-sdk-rust-obs?style=flat-square)](https://docs.rs/huaweicloud-sdk-rust-obs/latest)
+
 > WIP. 计划只支持基本的 obs 操作。
 
 ## 基本使用
