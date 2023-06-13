@@ -120,7 +120,7 @@ impl Config {
         params: Option<HashMap<String, String>>,
     ) -> (RequestUri, CanonicalizedResource) {
         let mut canonicalized_resource: CanonicalizedResource = String::from("/");
-        let mut uri:RequestUri = String::new();
+        let mut uri: RequestUri = String::new();
         if !bucket_name.is_empty() {
             canonicalized_resource.push_str(bucket_name);
             canonicalized_resource.push('/');
@@ -132,17 +132,23 @@ impl Config {
                     }
                     if let Some(params) = params {
                         canonicalized_resource.push('?');
-                        uri.push('?');
                         let mut uri_params = vec![];
                         for (k, v) in &params {
-                            uri_params.push(format!("{}={}",k,v));
+                            if v.is_empty() {
+                                uri_params.push(k.to_string());
+                            }else {
+                                uri_params.push(format!("{}={}", k, v));
+                            }
                             if SUB_RESOURCES.contains(&k.as_str()) {
                                 if !canonicalized_resource.ends_with('?') {
                                     canonicalized_resource.push('&');
                                 }
                                 canonicalized_resource.push_str(k);
-                                canonicalized_resource.push('=');
-                                canonicalized_resource.push_str(v);
+                                if !v.is_empty() {
+                                    canonicalized_resource.push('=');
+                                    canonicalized_resource.push_str(v);
+                                }
+                                
                             }
                         }
                         if !uri_params.is_empty() {
@@ -154,10 +160,7 @@ impl Config {
                 SignatureType::V4 => canonicalized_resource.push('/'),
             }
         }
-        (
-            uri,
-            canonicalized_resource.trim_end_matches('?').into()
-        )
+        (uri, canonicalized_resource.trim_end_matches('?').into())
     }
 
     /// 暂时不支持自定义域名

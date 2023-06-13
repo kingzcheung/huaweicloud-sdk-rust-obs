@@ -79,7 +79,7 @@ impl Authorization for Client {
         prepare_host_and_date(&mut headers, self.config().endpoint(), is_v4);
 
         let sign = self.signature(method, params, headers.clone(), canonicalized_url)?;
-        println!("sign:{}", &sign);
+
         let security = self.security();
         match security {
             Some(s) => {

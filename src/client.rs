@@ -52,13 +52,13 @@ impl Client {
         &self.config
     }
 
-    pub async fn do_action<T,S1,S2>(
+    pub async fn do_action<T, S1, S2>(
         &self,
         method: Method,
         bucket_name: S1,
         uri: S2,
         with_headers: Option<HeaderMap>,
-        params: Option<HashMap<String,String>>,
+        params: Option<HashMap<String, String>>,
         body: Option<T>,
     ) -> Result<Response, ObsError>
     where
@@ -66,8 +66,6 @@ impl Client {
         S1: AsRef<str> + Send,
         S2: AsRef<str> + Send,
     {
-    
-
         let mut auth_headers = HashMap::new();
         let mut headers = if let Some(wh) = with_headers {
             for (k, v) in &wh {
@@ -80,7 +78,9 @@ impl Client {
             HeaderMap::new()
         };
 
-        let (request_uri,canonicalized_url) = self.config().format_urls(bucket_name.as_ref(), uri.as_ref(),params);
+        let (request_uri, canonicalized_url) =
+            self.config()
+                .format_urls(bucket_name.as_ref(), uri.as_ref(), params);
 
         let url = format!(
             "https://{}.{}/{}",
@@ -107,20 +107,19 @@ impl Client {
         Ok(res)
     }
 
-    pub async fn do_action_without_bucket_name<T,S1>(
+    pub async fn do_action_without_bucket_name<T, S1>(
         &self,
         method: Method,
         uri: S1,
         with_headers: Option<HeaderMap>,
-        params: Option<HashMap<String,String>>,
+        params: Option<HashMap<String, String>>,
         body: Option<T>,
     ) -> Result<Response, ObsError>
     where
         T: Into<Body> + Send,
-        S1: AsRef<str> +Send
+        S1: AsRef<str> + Send,
     {
-
-        let (request_uri,canonicalized_url) = self.config().format_urls("", uri.as_ref(),params);
+        let (request_uri, canonicalized_url) = self.config().format_urls("", uri.as_ref(), params);
         let mut headers = self.auth(
             method.as_str(),
             "",

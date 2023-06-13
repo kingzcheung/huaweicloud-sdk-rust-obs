@@ -13,3 +13,12 @@ async fn test_list_object()->Result<(), ObsError>{
     dbg!(res);
     Ok(())
 }
+
+#[tokio::test]
+async fn test_bucket_location()->Result<(), ObsError> {
+    let obs = create_obs_client()?;
+
+    let res = obs.bucket_location(DEFAULT_BUCKET_NAME).await?;
+    dbg!(res);
+    Ok(())
+}
