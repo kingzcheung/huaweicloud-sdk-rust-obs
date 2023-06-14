@@ -164,6 +164,8 @@ impl BucketTrait for Client {
         S1: AsRef<str> + Send,
     {
         let mut params = HashMap::new();
+        params.insert("delimiter".into(), "/".to_string());
+
         if let Some(m) = marker {
             params.insert("marker".into(), m.into());
         }
@@ -181,7 +183,8 @@ impl BucketTrait for Client {
             .await?;
         let status = resp.status();
         let text = resp.text().await?;
-
+        // let text = text.replace("xmlns=\"http://obs.myhwclouds.com/doc/2015-06-30/\"", "");
+        println!("{}",&text);
         status_to_response::<ListBucketResult>(status, text)
     }
 

@@ -6,6 +6,15 @@ pub struct ListBucketResult {
     #[serde(rename = "Name")]
     pub name: String,
 
+    #[serde(rename = "Prefix")]
+    pub prefix: Option<String>,
+
+    #[serde(rename = "Delimiter")]
+    pub delimiter: Option<String>,
+
+    #[serde(rename = "EncodingType")]
+    pub encoding_type: Option<String>,
+
     #[serde(rename = "NextMarker")]
     pub next_marker: Option<String>,
 
@@ -15,8 +24,19 @@ pub struct ListBucketResult {
     #[serde(rename = "IsTruncated")]
     pub is_truncated: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "Contents")]
-    pub contents: Vec<Content>,
+    pub contents: Option<Vec<Content>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "CommonPrefixes")]
+    pub common_prefixes: Option<Vec<CommonPrefixes>>,
+}
+
+#[derive(Serialize, Deserialize,Debug)]
+pub struct CommonPrefixes {
+    #[serde(rename = "Prefix")]
+    pub prefix: String,
 }
 
 #[derive(Serialize, Deserialize,Debug)]
@@ -31,29 +51,17 @@ pub struct Content {
     pub e_tag: String,
 
     #[serde(rename = "Size")]
-    pub size: String,
+    pub size: usize,
 
     #[serde(rename = "Owner")]
     pub owner: Owner,
 
     #[serde(rename = "StorageClass")]
-    pub storage_class: StorageClass,
+    pub storage_class: String,
 }
 
 #[derive(Serialize, Deserialize,Debug)]
 pub struct Owner {
     #[serde(rename = "ID")]
-    id: Id,
-}
-
-#[derive(Serialize, Deserialize,Debug)]
-pub enum Id {
-    #[serde(rename = "0ac96b898e800f220f36c00d9687b180")]
-    The0Ac96B898E800F220F36C00D9687B180,
-}
-
-#[derive(Serialize, Deserialize,Debug)]
-pub enum StorageClass {
-    #[serde(rename = "STANDARD")]
-    Standard,
+    id: String,
 }
