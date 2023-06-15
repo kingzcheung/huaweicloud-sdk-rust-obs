@@ -13,7 +13,7 @@ async fn main()->Result<(), ObsError> {
 
     let ak = env::var("OBS_AK").unwrap();
     let sk = env::var("OBS_SK").unwrap();
-    println!("ak:{},sk:{}",&ak,&sk);
+    // println!("ak:{},sk:{}",&ak,&sk);
     let obs = client::Client::builder()
         .endpoint("https://obs.ap-southeast-1.myhuaweicloud.com")
         .security_provider(&ak, &sk) //ifree-test

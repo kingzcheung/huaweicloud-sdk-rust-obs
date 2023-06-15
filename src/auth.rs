@@ -46,7 +46,7 @@ impl Authorization for Client {
         ]
         .join("");
 
-        println!("string_to_sign: {:?}", &string_to_sign);
+        // println!("string_to_sign: {:?}", &string_to_sign);
 
         let security = self.security();
         match security {

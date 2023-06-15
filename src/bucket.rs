@@ -183,8 +183,7 @@ impl BucketTrait for Client {
             .await?;
         let status = resp.status();
         let text = resp.text().await?;
-        // let text = text.replace("xmlns=\"http://obs.myhwclouds.com/doc/2015-06-30/\"", "");
-        println!("{}",&text);
+        // println!("{}",&text);
         status_to_response::<ListBucketResult>(status, text)
     }
 
