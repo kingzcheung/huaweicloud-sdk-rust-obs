@@ -1,5 +1,6 @@
 use reqwest::{StatusCode};
 use serde::Deserialize;
+use serde_json::error;
 use thiserror::Error;
 
 use crate::model::ErrorResponse;
@@ -17,6 +18,9 @@ pub enum ObsError {
 
     #[error("parse or convert json error")]
     ParseOrConvert,
+
+    #[error("next position error")]
+    NextPosition,
 
     #[error("serialize error")]
     Serialize(#[from] serde_xml_rs::Error),

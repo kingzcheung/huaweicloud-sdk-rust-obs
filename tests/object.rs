@@ -26,7 +26,7 @@ async fn test_get_object_metadata() -> Result<(), ObsError> {
 }
 
 #[tokio::test]
-async fn test_copy_object()->Result<(), ObsError> {
+async fn test_copy_object() -> Result<(), ObsError> {
     let obs = create_obs_client()?;
     let src = "/obs-client-key.jpeg";
     let dest = "obs-client-key_copy.jpeg";
@@ -36,10 +36,37 @@ async fn test_copy_object()->Result<(), ObsError> {
 }
 
 #[tokio::test]
-async fn test_get_object()->Result<(),ObsError> {
+async fn test_get_object() -> Result<(), ObsError> {
     let obs = create_obs_client()?;
     let key = "obs-client-key.jpeg";
     let data = obs.get_object(DEFAULT_BUCKET_NAME, key).await?;
     dbg!(data);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_append_object() -> Result<(), ObsError> {
+    let obs = create_obs_client()?;
+    let key = "obs-client-append-key.txt";
+    let appended = "hello world";
+    let appended2 = ",cc";
+    let position = 0;
+    let next_position = obs
+        .append_object(DEFAULT_BUCKET_NAME, key, appended.as_bytes(), position)
+        .await?;
+    assert!(next_position.is_some());
+    dbg!(next_position);
+    let n2 = obs
+        .append_object(
+            DEFAULT_BUCKET_NAME,
+            key,
+            appended2.as_bytes(),
+            next_position.unwrap(),
+        )
+        .await?;
+    assert!(n2.is_some());
+    let data = obs.get_object(DEFAULT_BUCKET_NAME, key).await?;
+    assert_eq!(data.len(), appended.len() + appended2.len());
+    // obs.delete_object(DEFAULT_BUCKET_NAME, key).await?;
     Ok(())
 }

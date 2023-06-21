@@ -10,7 +10,10 @@ use urlencoding::encode;
 use crate::{
     client::Client,
     error::{status_to_response, ObsError},
-    model::{bucket::copy_object::CopyObjectResult, object::ObjectMeta},
+    model::{
+        bucket::copy_object::CopyObjectResult,
+        object::{NextPosition, ObjectMeta},
+    },
 };
 
 #[async_trait]
@@ -51,6 +54,15 @@ pub trait ObjectTrait {
         bucket: S,
         key: S,
     ) -> Result<ObjectMeta, ObsError>;
+
+    /// 追加写对象
+    async fn append_object<S: AsRef<str> + Send>(
+        &self,
+        bucket: S,
+        key: S,
+        appended: &[u8],
+        position: u64,
+    ) -> Result<NextPosition, ObsError>;
 }
 
 #[async_trait]
@@ -80,6 +92,55 @@ impl ObjectTrait for Client {
         let _ = resp.text().await?;
 
         Ok(())
+    }
+
+    async fn append_object<S: AsRef<str> + Send>(
+        &self,
+        bucket: S,
+        key: S,
+        appended: &[u8],
+        position: u64,
+    ) -> Result<NextPosition, ObsError> {
+        let mut params = HashMap::new();
+        params.insert("append".to_string(), "".into());
+        params.insert("position".into(), position.to_string());
+        let mut with_headers = HeaderMap::new();
+        with_headers.insert(
+            "Content-Length",
+            HeaderValue::from_str(format!("{}", appended.len()).as_str()).unwrap(),
+        );
+        let resp = self
+            .do_action(
+                Method::POST,
+                bucket,
+                key,
+                Some(with_headers),
+                Some(params),
+                Some(appended.to_owned()),
+            )
+            .await?;
+        let status = resp.status();
+        let headers = resp.headers().clone();
+        let text = resp.text().await;
+        dbg!(text);
+        if status.is_success() {
+            let next_position = if let Some(next) = headers.get("x-obs-next-append-position")
+            {
+                let next = String::from_utf8_lossy(next.as_bytes()).to_string();
+                match next.parse::<u64>() {
+                    Ok(u) => Some(u),
+                    Err(_) => None,
+                }
+            } else {
+                None
+            };
+            Ok(next_position as NextPosition)
+        } else {
+            Err(ObsError::Response {
+                status,
+                message: "response error".into(),
+            })
+        }
     }
 
     /// 复制对象
@@ -136,7 +197,7 @@ impl ObjectTrait for Client {
     /// 删除对象
     async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError> {
         let _resp = self
-            .do_action(Method::DELETE, bucket, key, None,None, None::<String>)
+            .do_action(Method::DELETE, bucket, key, None, None, None::<String>)
             .await?;
         Ok(())
     }
@@ -148,7 +209,7 @@ impl ObjectTrait for Client {
         key: S,
     ) -> Result<bytes::Bytes, ObsError> {
         let resp = self
-            .do_action(Method::GET, bucket, key, None,None, None::<String>)
+            .do_action(Method::GET, bucket, key, None, None, None::<String>)
             .await?
             .bytes()
             .await?;
@@ -163,7 +224,7 @@ impl ObjectTrait for Client {
         key: S,
     ) -> Result<ObjectMeta, ObsError> {
         let resp = self
-            .do_action(Method::HEAD, bucket, key, None,None, None::<String>)
+            .do_action(Method::HEAD, bucket, key, None, None, None::<String>)
             .await?;
         let headers = resp.headers();
         let mut data = HashMap::with_capacity(headers.len());

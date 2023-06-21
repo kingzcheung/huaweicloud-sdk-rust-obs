@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 
+pub type NextPosition = Option<u64>;
 
 #[derive(Serialize, Deserialize,Debug)]
 pub struct ObjectMeta {
