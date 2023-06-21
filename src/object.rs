@@ -121,8 +121,6 @@ impl ObjectTrait for Client {
             .await?;
         let status = resp.status();
         let headers = resp.headers().clone();
-        let text = resp.text().await;
-        dbg!(text);
         if status.is_success() {
             let next_position = if let Some(next) = headers.get("x-obs-next-append-position")
             {

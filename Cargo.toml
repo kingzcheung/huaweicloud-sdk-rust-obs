@@ -2,7 +2,7 @@
 name = "huaweicloud-sdk-rust-obs"
 description = "huaweicloud obs rust sdk"
 authors = ["KingzCheung <kingzcheung@gmail.com>"]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 readme = "README.md"
 license-file = "LICENSE-APACHE-2.0"

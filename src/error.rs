@@ -1,6 +1,5 @@
 use reqwest::{StatusCode};
 use serde::Deserialize;
-use serde_json::error;
 use thiserror::Error;
 
 use crate::model::ErrorResponse;

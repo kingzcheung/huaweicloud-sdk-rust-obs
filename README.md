@@ -36,3 +36,14 @@ async fn main() -> Result<(), ObsError> {
 
 }
 ```
+## 测试
+
+1. 在项目根目录添加 `.env`文件，内容格式如下：
+
+```
+OBS_AK=XXXXXXXXXXXXXXX
+OBS_SK=XXXXXXXXXXXXXXXXXXXX
+```
+
+2. `tests/common/mod.rs` 下的 `DEFAULT_BUCKET_NAME` 替换为自己的 bucket 名称
+3. 运行 `cargo test`
