@@ -1,5 +1,5 @@
 mod common;
-use huaweicloud_sdk_rust_obs::{error::ObsError, object::ObjectTrait};
+use huaweicloud_sdk_rust_obs::{error::ObsError, object::ObjectTrait, model::delete_object::ResponseMode};
 
 use crate::common::*;
 
@@ -68,5 +68,21 @@ async fn test_append_object() -> Result<(), ObsError> {
     let data = obs.get_object(DEFAULT_BUCKET_NAME, key).await?;
     assert_eq!(data.len(), appended.len() + appended2.len());
     // obs.delete_object(DEFAULT_BUCKET_NAME, key).await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_delete_objects() -> Result<(), ObsError> {
+    let objects = vec![
+        "obs-client-test-delete-object.txt",
+        "obs-client-test-delete-object2.txt",
+        ];
+    let obs = create_obs_client()?;
+    for obj in &objects {
+        obs.put_object(DEFAULT_BUCKET_NAME, obj, b"test delete text").await?;
+    }
+
+    obs.delete_objects(DEFAULT_BUCKET_NAME, objects, ResponseMode::Verbose).await?;
+
     Ok(())
 }

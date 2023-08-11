@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 
 pub mod object;
 pub mod bucket;
+pub mod delete_object;
 
 // #[derive(Serialize, Deserialize,Debug)]
 // pub struct ErrorResponse {

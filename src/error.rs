@@ -1,4 +1,4 @@
-use reqwest::{StatusCode};
+use reqwest::StatusCode;
 use serde::Deserialize;
 use thiserror::Error;
 
