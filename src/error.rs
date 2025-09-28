@@ -43,6 +43,13 @@ where
                 message: er.message,
             })
         }
+        StatusCode::NOT_FOUND => {
+            let er: ErrorResponse = serde_xml_rs::from_str(&text)?;
+            Err(ObsError::Response {
+                status: StatusCode::NOT_FOUND,
+                message: er.message,
+            })
+        }
         _ => Err(ObsError::Unknown),
     }
 }

@@ -1,10 +1,9 @@
 use crate::{client::Client, config::SignatureType, error::ObsError};
 use ::base64::{engine::general_purpose, Engine};
 use chrono::{TimeZone, Utc};
-use hmacsha1::hmac_sha1;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::{collections::HashMap, str::FromStr};
-
+use hmac_sha1::hmac_sha1;
 const RFC1123: &str = "%a, %d %b %Y %H:%M:%S GMT";
 
 

@@ -1,17 +1,20 @@
-use std::collections::HashMap;
-use base64::{engine::general_purpose, Engine};
-use md5::{Md5, Digest};
 use async_trait::async_trait;
-use reqwest::{ header::{ HeaderMap, HeaderValue }, Method };
+use base64::{engine::general_purpose, Engine};
+use md5::{Digest, Md5};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Method,
+};
+use std::collections::HashMap;
 use urlencoding::encode;
 
 use crate::{
     client::Client,
-    error::{ status_to_response, ObsError },
+    error::{status_to_response, ObsError},
     model::{
         bucket::copy_object::CopyObjectResult,
-        object::{ NextPosition, ObjectMeta },
-        delete_object::{ Delete, Object, Item, ResponseMode, Boolean },
+        delete_object::{Boolean, Delete, Item, Object, ResponseMode},
+        object::{NextPosition, ObjectMeta},
     },
 };
 
@@ -22,7 +25,7 @@ pub trait ObjectTrait {
         &self,
         bucket: S,
         key: S,
-        object: &[u8]
+        object: &[u8],
     ) -> Result<(), ObsError>;
 
     /// 复制对象
@@ -30,10 +33,12 @@ pub trait ObjectTrait {
         &self,
         bucket: S1,
         src: S2,
-        dest: S3
-    )
-        -> Result<CopyObjectResult, ObsError>
-        where S1: AsRef<str> + Send, S2: AsRef<str> + Send, S3: AsRef<str> + Send;
+        dest: S3,
+    ) -> Result<CopyObjectResult, ObsError>
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send,
+        S3: AsRef<str> + Send;
 
     /// 删除对象
     async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError>;
@@ -50,14 +55,14 @@ pub trait ObjectTrait {
     async fn get_object<S: AsRef<str> + Send>(
         &self,
         bucket: S,
-        key: S
+        key: S,
     ) -> Result<bytes::Bytes, ObsError>;
 
     /// 获取对象元数据
     async fn get_object_metadata<S: AsRef<str> + Send>(
         &self,
         bucket: S,
-        key: S
+        key: S,
     ) -> Result<ObjectMeta, ObsError>;
 
     /// 追加写对象
@@ -66,7 +71,7 @@ pub trait ObjectTrait {
         bucket: S,
         key: S,
         appended: &[u8],
-        position: u64
+        position: u64,
     ) -> Result<NextPosition, ObsError>;
 }
 
@@ -77,24 +82,44 @@ impl ObjectTrait for Client {
         &self,
         bucket: S,
         key: S,
-        object: &[u8]
+        object: &[u8],
     ) -> Result<(), ObsError> {
         let mut with_headers = HeaderMap::new();
         with_headers.insert(
             "Content-Length",
-            HeaderValue::from_str(format!("{}", object.len()).as_str()).unwrap()
+            HeaderValue::from_str(format!("{}", object.len()).as_str()).unwrap(),
         );
-        let resp = self.do_action(
-            Method::PUT,
-            bucket,
-            key,
-            Some(with_headers),
-            None,
-            Some(object.to_owned())
-        ).await?;
-        let _ = resp.text().await?;
+        let resp = self
+            .do_action(
+                Method::PUT,
+                bucket,
+                key,
+                Some(with_headers),
+                None,
+                Some(object.to_owned()),
+            )
+            .await?;
+        let status = resp.status();
+        let text = resp.text().await?;
 
-        Ok(())
+        if status.is_success() {
+            Ok(())
+        } else {
+            // 尝试解析错误响应
+            match serde_xml_rs::from_str::<crate::model::ErrorResponse>(&text) {
+                Ok(error_response) => Err(crate::error::ObsError::Response {
+                    status,
+                    message: error_response.message,
+                }),
+                Err(_) => {
+                    // 如果无法解析错误响应，则返回原始文本
+                    Err(crate::error::ObsError::Response {
+                        status,
+                        message: text,
+                    })
+                }
+            }
+        }
     }
 
     async fn append_object<S: AsRef<str> + Send>(
@@ -102,7 +127,7 @@ impl ObjectTrait for Client {
         bucket: S,
         key: S,
         appended: &[u8],
-        position: u64
+        position: u64,
     ) -> Result<NextPosition, ObsError> {
         let mut params = HashMap::new();
         params.insert("append".to_string(), "".into());
@@ -110,16 +135,18 @@ impl ObjectTrait for Client {
         let mut with_headers = HeaderMap::new();
         with_headers.insert(
             "Content-Length",
-            HeaderValue::from_str(format!("{}", appended.len()).as_str()).unwrap()
+            HeaderValue::from_str(format!("{}", appended.len()).as_str()).unwrap(),
         );
-        let resp = self.do_action(
-            Method::POST,
-            bucket,
-            key,
-            Some(with_headers),
-            Some(params),
-            Some(appended.to_owned())
-        ).await?;
+        let resp = self
+            .do_action(
+                Method::POST,
+                bucket,
+                key,
+                Some(with_headers),
+                Some(params),
+                Some(appended.to_owned()),
+            )
+            .await?;
         let status = resp.status();
         let headers = resp.headers().clone();
         if status.is_success() {
@@ -146,26 +173,33 @@ impl ObjectTrait for Client {
         &self,
         bucket: S1,
         src: S2,
-        dest: S3
-    )
-        -> Result<CopyObjectResult, ObsError>
-        where S1: AsRef<str> + Send, S2: AsRef<str> + Send, S3: AsRef<str> + Send
+        dest: S3,
+    ) -> Result<CopyObjectResult, ObsError>
+    where
+        S1: AsRef<str> + Send,
+        S2: AsRef<str> + Send,
+        S3: AsRef<str> + Send,
     {
         let mut with_headers = HeaderMap::new();
         let dest = dest.as_ref().trim_start_matches('/');
         let src = src.as_ref().trim_start_matches('/');
         let src = encode(src);
         let copy_source = format!("/{}/{}", bucket.as_ref(), src);
-        with_headers.insert("x-obs-copy-source", HeaderValue::from_str(&copy_source).unwrap());
+        with_headers.insert(
+            "x-obs-copy-source",
+            HeaderValue::from_str(&copy_source).unwrap(),
+        );
 
-        let resp = self.do_action(
-            Method::PUT,
-            bucket,
-            dest,
-            Some(with_headers),
-            None,
-            None::<String>
-        ).await?;
+        let resp = self
+            .do_action(
+                Method::PUT,
+                bucket,
+                dest,
+                Some(with_headers),
+                None,
+                None::<String>,
+            )
+            .await?;
         let status = resp.status();
         let text = resp.text().await?;
         status_to_response::<CopyObjectResult>(status, text)
@@ -187,7 +221,9 @@ impl ObjectTrait for Client {
 
     /// 删除对象
     async fn delete_object<S: AsRef<str> + Send>(&self, bucket: S, key: S) -> Result<(), ObsError> {
-        let _resp = self.do_action(Method::DELETE, bucket, key, None, None, None::<String>).await?;
+        let _resp = self
+            .do_action(Method::DELETE, bucket, key, None, None, None::<String>)
+            .await?;
         Ok(())
     }
     /// 批量删除对象
@@ -205,9 +241,12 @@ impl ObjectTrait for Client {
             quiet: response_mode.to_bool(),
             item: keys
                 .into_iter()
-                .map(|key|
-                    Item::Object(Object { key_name: key.as_ref().to_owned(), version_id: None })
-                )
+                .map(|key| {
+                    Item::Object(Object {
+                        key_name: key.as_ref().to_owned(),
+                        version_id: None,
+                    })
+                })
                 .collect::<Vec<Item>>(),
         };
         let body = serde_xml_rs::to_string(&body)?;
@@ -221,16 +260,18 @@ impl ObjectTrait for Client {
 
         with_headers.insert(
             "Content-Length",
-            HeaderValue::from_str(format!("{}", body.as_bytes().len()).as_str()).unwrap()
+            HeaderValue::from_str(format!("{}", body.as_bytes().len()).as_str()).unwrap(),
         );
-        let _resp = self.do_action(
-            Method::POST,
-            bucket,
-            "",
-            Some(with_headers),
-            Some(params),
-            Some(body)
-        ).await?;
+        let _resp = self
+            .do_action(
+                Method::POST,
+                bucket,
+                "",
+                Some(with_headers),
+                Some(params),
+                Some(body),
+            )
+            .await?;
         // dbg!(_resp.text().await?);
         Ok(())
     }
@@ -239,11 +280,13 @@ impl ObjectTrait for Client {
     async fn get_object<S: AsRef<str> + Send>(
         &self,
         bucket: S,
-        key: S
+        key: S,
     ) -> Result<bytes::Bytes, ObsError> {
         let resp = self
-            .do_action(Method::GET, bucket, key, None, None, None::<String>).await?
-            .bytes().await?;
+            .do_action(Method::GET, bucket, key, None, None, None::<String>)
+            .await?
+            .bytes()
+            .await?;
 
         Ok(resp)
     }
@@ -252,9 +295,11 @@ impl ObjectTrait for Client {
     async fn get_object_metadata<S: AsRef<str> + Send>(
         &self,
         bucket: S,
-        key: S
+        key: S,
     ) -> Result<ObjectMeta, ObsError> {
-        let resp = self.do_action(Method::HEAD, bucket, key, None, None, None::<String>).await?;
+        let resp = self
+            .do_action(Method::HEAD, bucket, key, None, None, None::<String>)
+            .await?;
         let headers = resp.headers();
         let mut data = HashMap::with_capacity(headers.len());
         for (key, val) in headers {
@@ -263,9 +308,8 @@ impl ObjectTrait for Client {
 
         let header_str = serde_json::to_string(&data).map_err(|_e| ObsError::ParseOrConvert)?;
 
-        let data: ObjectMeta = serde_json
-            ::from_str(&header_str)
-            .map_err(|_e| ObsError::ParseOrConvert)?;
+        let data: ObjectMeta =
+            serde_json::from_str(&header_str).map_err(|_e| ObsError::ParseOrConvert)?;
 
         Ok(data)
     }
