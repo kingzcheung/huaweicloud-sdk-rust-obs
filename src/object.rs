@@ -152,10 +152,7 @@ impl ObjectTrait for Client {
         if status.is_success() {
             let next_position = if let Some(next) = headers.get("x-obs-next-append-position") {
                 let next = String::from_utf8_lossy(next.as_bytes()).to_string();
-                match next.parse::<u64>() {
-                    Ok(u) => Some(u),
-                    Err(_) => None,
-                }
+                next.parse::<u64>().ok()
             } else {
                 None
             };
@@ -260,7 +257,7 @@ impl ObjectTrait for Client {
 
         with_headers.insert(
             "Content-Length",
-            HeaderValue::from_str(format!("{}", body.as_bytes().len()).as_str()).unwrap(),
+            HeaderValue::from_str(format!("{}", body.len()).as_str()).unwrap(),
         );
         let _resp = self
             .do_action(

@@ -40,7 +40,7 @@ impl Client {
             None
         }
     }
-    pub fn bucket<'a>(&'a self, name: &'a str) -> Bucket {
+    pub fn bucket<'a>(&'a self, name: &'a str) -> Bucket<'a> {
         Bucket::new(name, self)
     }
 

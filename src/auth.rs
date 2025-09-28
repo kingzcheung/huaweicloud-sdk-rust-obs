@@ -1,6 +1,6 @@
 use crate::{client::Client, config::SignatureType, error::ObsError};
 use ::base64::{engine::general_purpose, Engine};
-use chrono::{TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::{collections::HashMap, str::FromStr};
 use hmac_sha1::hmac_sha1;
@@ -27,6 +27,8 @@ pub trait Authorization {
 }
 
 impl Authorization for Client {
+
+    #[allow(clippy::useless_vec)]
     fn signature(
         &self,
         method: &str,
@@ -111,7 +113,7 @@ fn prepare_host_and_date(
         if date.len() == 1 {
             if is_v4 {
                 // 20060102T150405Z
-                if let Ok(t) = Utc.datetime_from_str(&date[0], "%Y%m%dT%H%M%SZ") {
+                if let Ok(t) = DateTime::parse_from_str(&date[0], "%Y%m%dT%H%M%SZ") {
                     headers.insert("Date".into(), vec![t.format(RFC1123).to_string()]);
                     flag = true;
                 }
