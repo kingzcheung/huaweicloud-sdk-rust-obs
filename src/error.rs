@@ -16,13 +16,16 @@ pub enum ObsError {
     Response { status: StatusCode, message: String },
 
     #[error("parse or convert json error")]
-    ParseOrConvert,
+    ParseOrConvert(String),
 
     #[error("next position error")]
     NextPosition,
 
     #[error("serialize error")]
-    Serialize(#[from] serde_xml_rs::Error),
+    Serialize {
+        raw: String,
+        err: serde_xml_rs::Error,
+    },
     #[error("unknown data store error")]
     Unknown,
 }
@@ -33,23 +36,32 @@ where
 {
     match status {
         StatusCode::OK => {
-            let r: T = serde_xml_rs::from_str(&text)?;
+            let r: T = serde_xml_rs::from_str(&text).map_err(|e| ObsError::Serialize {
+                raw: text.clone(),
+                err: e,
+            })?;
             Ok(r)
         }
-        StatusCode::FORBIDDEN => {
-            let er: ErrorResponse = serde_xml_rs::from_str(&text)?;
-            Err(ObsError::Response {
+        StatusCode::FORBIDDEN => match serde_xml_rs::from_str::<ErrorResponse>(&text) {
+            Ok(er) => Err(ObsError::Response {
                 status: StatusCode::FORBIDDEN,
                 message: er.message,
-            })
-        }
-        StatusCode::NOT_FOUND => {
-            let er: ErrorResponse = serde_xml_rs::from_str(&text)?;
-            Err(ObsError::Response {
+            }),
+            Err(e) => Err(ObsError::Response {
+                status: StatusCode::FORBIDDEN,
+                message: format!("{:?}", e),
+            }),
+        },
+        StatusCode::NOT_FOUND => match serde_xml_rs::from_str::<ErrorResponse>(&text) {
+            Ok(er) => Err(ObsError::Response {
                 status: StatusCode::NOT_FOUND,
                 message: er.message,
-            })
-        }
+            }),
+            Err(e) => Err(ObsError::Response {
+                status: StatusCode::NOT_FOUND,
+                message: format!("{:?}", e),
+            }),
+        },
         _ => Err(ObsError::Unknown),
     }
 }

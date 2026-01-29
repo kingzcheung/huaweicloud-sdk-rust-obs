@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ListBucketResult {
     #[serde(rename = "Name")]
     pub name: String,
@@ -33,13 +32,13 @@ pub struct ListBucketResult {
     pub common_prefixes: Option<Vec<CommonPrefixes>>,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CommonPrefixes {
     #[serde(rename = "Prefix")]
     pub prefix: String,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Content {
     #[serde(rename = "Key")]
     pub key: String,
@@ -60,7 +59,7 @@ pub struct Content {
     pub storage_class: String,
 }
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Owner {
     #[serde(rename = "ID")]
     id: String,

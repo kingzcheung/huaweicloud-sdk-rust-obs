@@ -136,7 +136,7 @@ impl Config {
                         for (k, v) in &params {
                             if v.is_empty() {
                                 uri_params.push(k.to_string());
-                            }else {
+                            } else {
                                 uri_params.push(format!("{}={}", k, v));
                             }
                             if SUB_RESOURCES.contains(&k.as_str()) {
@@ -148,7 +148,6 @@ impl Config {
                                     canonicalized_resource.push('=');
                                     canonicalized_resource.push_str(v);
                                 }
-                                
                             }
                         }
                         if !uri_params.is_empty() {

@@ -246,7 +246,10 @@ impl ObjectTrait for Client {
                 })
                 .collect::<Vec<Item>>(),
         };
-        let body = serde_xml_rs::to_string(&body)?;
+        let body = serde_xml_rs::to_string(&body).map_err(|e| ObsError::Serialize {
+            raw: "delete body is invalid".into(),
+            err: e,
+        })?;
         let mut hasher = Md5::new();
         hasher.update(body.as_bytes());
         let result = hasher.finalize();
@@ -297,16 +300,17 @@ impl ObjectTrait for Client {
         let resp = self
             .do_action(Method::HEAD, bucket, key, None, None, None::<String>)
             .await?;
+
         let headers = resp.headers();
         let mut data = HashMap::with_capacity(headers.len());
         for (key, val) in headers {
             data.insert(key.as_str(), val.to_str().unwrap());
         }
+        let header_str =
+            serde_json::to_string(&data).map_err(|e| ObsError::ParseOrConvert(e.to_string()))?;
 
-        let header_str = serde_json::to_string(&data).map_err(|_e| ObsError::ParseOrConvert)?;
-
-        let data: ObjectMeta =
-            serde_json::from_str(&header_str).map_err(|_e| ObsError::ParseOrConvert)?;
+        let data: ObjectMeta = serde_json::from_str(&header_str)
+            .map_err(|e| ObsError::ParseOrConvert(e.to_string()))?;
 
         Ok(data)
     }

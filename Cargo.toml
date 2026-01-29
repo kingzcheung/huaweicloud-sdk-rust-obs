@@ -2,7 +2,7 @@
 name = "huaweicloud-sdk-rust-obs"
 description = "huaweicloud obs rust sdk"
 authors = ["KingzCheung <kingzcheung@gmail.com>"]
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 readme = "README.md"
 license-file = "LICENSE-APACHE-2.0"
@@ -14,17 +14,17 @@ keywords = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = {version = "1.28.0", features = ["full"]}
-reqwest = {version = "0.12.23", features = ["json"]}
-thiserror = "2.0.16"
+tokio = {version = "1.49.0", features = ["full"]}
+reqwest = {version = "0.13.1", features = ["json"]}
+thiserror = "2.0.18"
 urlencoding = "2.1.2"
-chrono = "0.4.24"
+chrono = "0.4.43"
 hmac-sha1 = "0.2.2"
 base64 = "0.22.1"
-serde-xml-rs = "0.8.1"
-bytes = "1.4.0"
+serde-xml-rs = "0.8.2"
+bytes = "1.11.0"
 serde = { version = "1.0.162", features = ["derive"] }
-serde_json = "1.0.96"
+serde_json = "1.0.149"
 async-trait = "0.1.68"
 lazy_static = "1.4.0"
 md-5 = "0.10.5"

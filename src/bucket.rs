@@ -5,8 +5,7 @@ use crate::{
     error::{status_to_response, ObsError},
     model::bucket::{
         copy_object::CopyObjectResult, create_bucket::CreateBucketRequest,
-        list_bucket::ListAllMyBucketsResult, list_object::ListBucketResult,
-        location::Location,
+        list_bucket::ListAllMyBucketsResult, list_object::ListBucketResult, location::Location,
     },
     object::ObjectTrait,
 };
@@ -139,17 +138,26 @@ impl BucketTrait for Client {
         S1: AsRef<str> + Send,
         S2: AsRef<str> + Send,
     {
-        let body = if let Some(loc) = location {
-            let xml = CreateBucketRequest::new(loc.as_ref());
-            serde_xml_rs::to_string(&xml)?
-        } else {
-            String::new()
+        let loc = location
+            .map(|x| x.as_ref().to_string())
+            .unwrap_or("cn-north-1".to_string());
+        let body = {
+            let xml = CreateBucketRequest::new(&loc);
+            serde_xml_rs::to_string(&xml).map_err(|err| ObsError::Serialize {
+                raw: "CreateBucketRequest is invalid".into(),
+                err,
+            })?
         };
 
-        let _res = self
+        let res = self
             .do_action(Method::PUT, name, "", None, None, Some(body))
             .await?;
-
+        if let Err(err) = res.error_for_status() {
+            return Err(ObsError::Response {
+                status: err.status().unwrap(),
+                message: err.to_string(),
+            });
+        }
         Ok(())
     }
 
@@ -183,7 +191,7 @@ impl BucketTrait for Client {
             .await?;
         let status = resp.status();
         let text = resp.text().await?;
-        // println!("{}",&text);
+
         status_to_response::<ListBucketResult>(status, text)
     }
 
@@ -195,14 +203,7 @@ impl BucketTrait for Client {
         params.insert("location".to_string(), "".to_string());
 
         let resp = self
-            .do_action(
-                Method::GET,
-                name,
-                "",
-                None,
-                Some(params),
-                None::<String>,
-            )
+            .do_action(Method::GET, name, "", None, Some(params), None::<String>)
             .await?;
         let status = resp.status();
         let text = resp.text().await?;

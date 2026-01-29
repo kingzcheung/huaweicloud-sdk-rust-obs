@@ -1,21 +1,21 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ListAllMyBucketsResult {
     #[serde(rename = "Owner")]
-    owner: Owner,
+    pub owner: Owner,
 
     #[serde(rename = "Buckets")]
-    buckets: Buckets,
+    pub buckets: Buckets,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Buckets {
     #[serde(rename = "Bucket")]
     pub bucket: Vec<Bucket>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Bucket {
     #[serde(rename = "Name")]
     pub name: String,
@@ -30,11 +30,8 @@ pub struct Bucket {
     pub bucket_type: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Owner {
     #[serde(rename = "ID")]
     pub id: String,
 }
-
-
-

@@ -3,12 +3,10 @@
 
 use std::{env, io::Write};
 
-use huaweicloud_sdk_rust_obs::{error::ObsError, client, object::ObjectTrait};
-
-
+use huaweicloud_sdk_rust_obs::{client, error::ObsError, object::ObjectTrait};
 
 #[tokio::main]
-async fn main()->Result<(), ObsError> {
+async fn main() -> Result<(), ObsError> {
     dotenvy::dotenv().unwrap();
 
     let ak = env::var("OBS_AK").unwrap();
@@ -20,11 +18,11 @@ async fn main()->Result<(), ObsError> {
         .endpoint(endpoint)
         .security_provider(&ak, &sk) //ifree-test
         .build()?;
-    let key= "test.jpeg";
+    let key = "test.jpeg";
     let bytes = obs.get_object(bucket.as_str(), key).await?;
 
     let mut file = std::fs::File::create("test.jpeg").unwrap();
     file.write_all(&bytes).unwrap();
-    
+
     Ok(())
 }

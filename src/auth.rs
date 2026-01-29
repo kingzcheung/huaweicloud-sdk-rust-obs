@@ -1,11 +1,10 @@
 use crate::{client::Client, config::SignatureType, error::ObsError};
 use ::base64::{engine::general_purpose, Engine};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
+use hmac_sha1::hmac_sha1;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use std::{collections::HashMap, str::FromStr};
-use hmac_sha1::hmac_sha1;
 const RFC1123: &str = "%a, %d %b %Y %H:%M:%S GMT";
-
 
 pub trait Authorization {
     fn signature(
@@ -27,7 +26,6 @@ pub trait Authorization {
 }
 
 impl Authorization for Client {
-
     #[allow(clippy::useless_vec)]
     fn signature(
         &self,

@@ -1,4 +1,4 @@
-use serde::{ Serialize, Deserialize };
+use serde::{Deserialize, Serialize};
 
 // #[derive(Debug, Serialize, Deserialize, PartialEq)]
 // pub struct DeleteRequest {
@@ -10,11 +10,10 @@ pub trait Boolean {
     fn to_bool(&self) -> bool;
 }
 
-
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum ResponseMode {
     Quiet,
-    Verbose
+    Verbose,
 }
 
 impl Boolean for ResponseMode {
@@ -25,7 +24,6 @@ impl Boolean for ResponseMode {
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Delete {
