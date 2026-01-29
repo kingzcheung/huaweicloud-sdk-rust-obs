@@ -1,7 +1,7 @@
 //! echo 'OBS_AK=xxxxxxx' > .env
 //! echo 'OBS_SK=xxxxxxxxxxxx' >> .env
 
-use std::{env, io::Write};
+use std::env;
 
 use huaweicloud_sdk_rust_obs::{client, error::ObsError, object::ObjectTrait};
 
