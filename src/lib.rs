@@ -113,6 +113,16 @@ pub use operations::{
     CopyObjectFluentBuilder, CopyObjectOutput,
     HeadObjectFluentBuilder, HeadObjectOutput,
     AppendObjectFluentBuilder, AppendObjectOutput,
+    
+    // Multipart upload operations
+    ListMultipartUploadsFluentBuilder, ListMultipartUploadsOutput,
+    MultipartUpload, MultipartInitiator, MultipartOwner,
+    InitiateMultipartUploadFluentBuilder, InitiateMultipartUploadOutput,
+    UploadPartFluentBuilder, UploadPartOutput, UploadPartBody,
+    CopyPartFluentBuilder, CopyPartOutput,
+    ListPartsFluentBuilder, ListPartsOutput, PartInfo,
+    CompleteMultipartUploadFluentBuilder, CompleteMultipartUploadOutput, CompletedPart,
+    AbortMultipartUploadFluentBuilder, AbortMultipartUploadOutput,
 };
 
 /// Prelude module for convenient imports.

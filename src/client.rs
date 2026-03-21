@@ -238,6 +238,143 @@ impl Client {
     }
 
     // ========================================
+    // Multipart Upload Operations
+    // ========================================
+
+    /// List in-progress multipart uploads.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// let result = client.list_multipart_uploads()
+    ///     .bucket("my-bucket")
+    ///     .max_uploads(100)
+    ///     .send()
+    ///     .await?;
+    ///
+    /// for upload in result.uploads() {
+    ///     println!("Key: {}, UploadId: {}", upload.key(), upload.upload_id());
+    /// }
+    /// ```
+    pub fn list_multipart_uploads(&self) -> ListMultipartUploadsFluentBuilder {
+        ListMultipartUploadsFluentBuilder::new(self.clone())
+    }
+
+    /// Initiate a multipart upload.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// let result = client.initiate_multipart_upload()
+    ///     .bucket("my-bucket")
+    ///     .key("large-file.zip")
+    ///     .send()
+    ///     .await?;
+    ///
+    /// println!("Upload ID: {}", result.upload_id());
+    /// ```
+    pub fn initiate_multipart_upload(&self) -> InitiateMultipartUploadFluentBuilder {
+        InitiateMultipartUploadFluentBuilder::new(self.clone())
+    }
+
+    /// Upload a part in a multipart upload.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// let data = vec![0u8; 1024 * 1024]; // 1MB of data
+    /// let result = client.upload_part()
+    ///     .bucket("my-bucket")
+    ///     .key("large-file.zip")
+    ///     .upload_id("upload-id")
+    ///     .part_number(1)
+    ///     .body(data)
+    ///     .send()
+    ///     .await?;
+    ///
+    /// println!("ETag: {}", result.etag());
+    /// ```
+    pub fn upload_part(&self) -> UploadPartFluentBuilder {
+        UploadPartFluentBuilder::new(self.clone())
+    }
+
+    /// Copy a part from an existing object to a multipart upload.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// let result = client.copy_part()
+    ///     .bucket("dest-bucket")
+    ///     .key("dest-object")
+    ///     .upload_id("upload-id")
+    ///     .part_number(1)
+    ///     .copy_source("/source-bucket/source-object")
+    ///     .send()
+    ///     .await?;
+    ///
+    /// println!("ETag: {}", result.etag());
+    /// ```
+    pub fn copy_part(&self) -> CopyPartFluentBuilder {
+        CopyPartFluentBuilder::new(self.clone())
+    }
+
+    /// List parts that have been uploaded for a multipart upload.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// let result = client.list_parts()
+    ///     .bucket("my-bucket")
+    ///     .key("large-file.zip")
+    ///     .upload_id("upload-id")
+    ///     .send()
+    ///     .await?;
+    ///
+    /// for part in result.parts() {
+    ///     println!("Part {}: ETag={}", part.part_number(), part.etag());
+    /// }
+    /// ```
+    pub fn list_parts(&self) -> ListPartsFluentBuilder {
+        ListPartsFluentBuilder::new(self.clone())
+    }
+
+    /// Complete a multipart upload by assembling previously uploaded parts.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// let result = client.complete_multipart_upload()
+    ///     .bucket("my-bucket")
+    ///     .key("large-file.zip")
+    ///     .upload_id("upload-id")
+    ///     .part(1, "etag1")
+    ///     .part(2, "etag2")
+    ///     .send()
+    ///     .await?;
+    ///
+    /// println!("ETag: {}", result.etag());
+    /// ```
+    pub fn complete_multipart_upload(&self) -> CompleteMultipartUploadFluentBuilder {
+        CompleteMultipartUploadFluentBuilder::new(self.clone())
+    }
+
+    /// Abort a multipart upload.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// client.abort_multipart_upload()
+    ///     .bucket("my-bucket")
+    ///     .key("large-file.zip")
+    ///     .upload_id("upload-id")
+    ///     .send()
+    ///     .await?;
+    /// ```
+    pub fn abort_multipart_upload(&self) -> AbortMultipartUploadFluentBuilder {
+        AbortMultipartUploadFluentBuilder::new(self.clone())
+    }
+
+    // ========================================
     // Internal Methods
     // ========================================
 
