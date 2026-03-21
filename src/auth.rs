@@ -193,10 +193,19 @@ fn build_string_to_sign(
     }
 
     // CanonicalizedHeaders (x-obs-* headers, sorted)
-    string_to_sign.push_str(&canonicalized_headers);
+    // Note: If there are canonicalized headers, add a newline after them
+    if !canonicalized_headers.is_empty() {
+        string_to_sign.push_str(&canonicalized_headers);
+        string_to_sign.push('\n');
+    }
 
     // CanonicalizedResource
     string_to_sign.push_str(&canonicalized_resource);
+
+    // Debug output
+    tracing::debug!("StringToSign:\n{}", string_to_sign);
+    tracing::debug!("CanonicalizedHeaders: {}", canonicalized_headers);
+    tracing::debug!("CanonicalizedResource: {}", canonicalized_resource);
 
     string_to_sign
 }
@@ -328,7 +337,9 @@ fn prepare_date_header(headers: &mut HashMap<String, Vec<String>>, signature_typ
     // Set current date if not present (case-insensitive check)
     let has_date = headers.keys().any(|k| k.to_lowercase() == "date");
     if !has_date {
-        headers.insert("Date".into(), vec![Utc::now().format(RFC1123).to_string()]);
+        let now = Utc::now();
+        let date_str = now.format(RFC1123).to_string();
+        headers.insert("Date".into(), vec![date_str]);
     }
 }
 
