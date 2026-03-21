@@ -241,7 +241,7 @@ impl Client {
         params: Option<HashMap<String, String>>,
         body: Option<Vec<u8>>,
     ) -> Result<Response> {
-        let mut auth_headers = HashMap::new();
+        let mut auth_headers: HashMap<String, Vec<String>> = HashMap::new();
         let mut req_headers = if let Some(h) = headers {
             for (k, v) in &h {
                 if let Ok(v) = v.to_str() {
@@ -317,9 +317,13 @@ impl Client {
                         }
                     }
                     if let Some(params) = params {
+                        // Sort params for consistent signature calculation
+                        let mut sorted_params: Vec<_> = params.iter().collect();
+                        sorted_params.sort_by(|a, b| a.0.cmp(b.0));
+                        
                         canonicalized_resource.push('?');
                         let mut uri_params = vec![];
-                        for (k, v) in params {
+                        for (k, v) in &sorted_params {
                             if v.is_empty() {
                                 uri_params.push(k.to_string());
                             } else {
