@@ -1,4 +1,4 @@
-//! Multipart upload operations module - AWS SDK style fluent builders for OBS multipart upload operations.
+//! Multipart upload operations module - fluent builders for OBS multipart upload operations.
 //!
 //! This module provides the following operations:
 //! - [`list_multipart_uploads`] - List all in-progress multipart uploads for a bucket

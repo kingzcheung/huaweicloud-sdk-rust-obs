@@ -1,6 +1,6 @@
 //! OBS Client - The main entry point for interacting with Huawei Cloud OBS.
 //!
-//! This module provides the main client for OBS operations, following AWS SDK style.
+//! This module provides the main client for OBS operations.
 //!
 //! # Example
 //!

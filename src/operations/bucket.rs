@@ -1,4 +1,4 @@
-//! Bucket operations - AWS SDK style fluent builders.
+//! Bucket operations - fluent builders for OBS bucket operations.
 
 use std::collections::HashMap;
 

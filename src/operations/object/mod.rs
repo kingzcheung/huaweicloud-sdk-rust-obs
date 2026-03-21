@@ -1,4 +1,4 @@
-//! Object operations module - AWS SDK style fluent builders for OBS object operations.
+//! Object operations module - fluent builders for OBS object operations.
 //!
 //! This module provides the following operations:
 //! - [`put_object`] - Upload an object to OBS

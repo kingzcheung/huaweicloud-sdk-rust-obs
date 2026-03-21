@@ -1,10 +1,10 @@
 //! Huawei Cloud OBS Rust SDK
 //!
-//! A Rust SDK for Huawei Cloud Object Storage Service (OBS), following AWS SDK style API design.
+//! An unofficial Rust SDK for Huawei Cloud Object Storage Service (OBS).
 //!
 //! # Features
 //!
-//! - AWS SDK style fluent builder API
+//! - Fluent builder API
 //! - Async/await support with Tokio
 //! - Comprehensive error handling
 //! - Support for bucket and object operations
@@ -54,7 +54,7 @@
 //!
 //! # API Design
 //!
-//! This SDK follows AWS SDK style API design:
+//! This SDK uses fluent builder pattern for API design:
 //!
 //! - **Fluent Builders**: Each operation has a dedicated fluent builder
 //! - **Input/Output Types**: Strongly typed request and response structures
