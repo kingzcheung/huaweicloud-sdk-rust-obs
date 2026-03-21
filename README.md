@@ -1,182 +1,204 @@
-# Huaweicloud OBS SDK (unofficial)
+# Huawei Cloud OBS Rust SDK
 
-[![Crates.io](https://img.shields.io/crates/l/huaweicloud-sdk-rust-obs/0.1.5?style=flat-square)](https://github.com/kingzcheung/huaweicloud-sdk-rust-obs) [![Crates.io](https://img.shields.io/crates/v/huaweicloud-sdk-rust-obs?style=flat-square)](https://crates.io/crates/huaweicloud-sdk-rust-obs) [![docs.rs](https://img.shields.io/docsrs/huaweicloud-sdk-rust-obs?style=flat-square)](https://docs.rs/huaweicloud-sdk-rust-obs/latest)
+[![Crates.io](https://img.shields.io/crates/v/huaweicloud-sdk-rust-obs.svg)](https://crates.io/crates/huaweicloud-sdk-rust-obs)
+[![Documentation](https://docs.rs/huaweicloud-sdk-rust-obs/badge.svg)](https://docs.rs/huaweicloud-sdk-rust-obs)
+[![License](https://img.shields.io/badge/license-Apache--2.0%2FMIT-blue.svg)](LICENSE-APACHE-2.0)
 
-> 计划只支持基本的 obs 操作。如果你觉得功能有缺失，欢迎提交 issue 或 pull request。
+A Rust SDK for Huawei Cloud Object Storage Service (OBS), following **AWS SDK style API design**.
 
-## 基本使用
+## Features
 
-1. 添加 sdk 到项目中:
+- 🚀 **AWS SDK Style API** - Fluent builder pattern for all operations
+- ⚡ **Async/Await** - Built on Tokio for high-performance async I/O
+- 🔒 **Type Safe** - Strong typing for all inputs and outputs
+- 📦 **Comprehensive** - Support for bucket and object operations
+- 🛠️ **Easy to Use** - Builder pattern for constructing requests
 
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+huaweicloud-sdk-rust-obs = "1.0.0"
+tokio = { version = "1", features = ["full"] }
 ```
-cargo add huaweicloud-sdk-rust-obs
-```
 
-2. 初始化客户端
+## Quick Start
+
+### Create a Client
 
 ```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, bucket::BucketTrait, object::ObjectTrait};
+use huaweicloud_sdk_rust_obs::{Client, Config};
 
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // 从环境变量获取配置
-    dotenvy::dotenv().ok(); // 可选：从 .env 文件加载
-    
-    let endpoint = std::env::var("ENDPOINT").unwrap_or_else(|_| "https://obs.ap-southeast-1.myhuaweicloud.com".to_string());
-    let ak = std::env::var("OBS_AK").expect("OBS_AK must be set");
-    let sk = std::env::var("OBS_SK").expect("OBS_SK must be set");
-    let bucket = std::env::var("OBS_BUCKET").expect("OBS_BUCKET must be set");
+let config = Config::builder()
+    .access_key("your-access-key", "your-secret-key")
+    .region_name("cn-north-4")
+    .build()?;
 
-    let obs = client::Client::builder()
-        .endpoint(&endpoint)
-        .security_provider(&ak, &sk)
-        .build()?;
-    
-    // 现在可以使用 obs 客户端执行各种操作
-    // 示例见下面的不同功能部分
-    Ok(())
+let client = Client::from_config(config)?;
+```
+
+### Bucket Operations
+
+```rust
+// List all buckets
+let result = client.list_buckets().send().await?;
+for bucket in result.buckets() {
+    println!("Bucket: {}", bucket.name());
+}
+
+// Create a bucket
+client.create_bucket()
+    .bucket("my-bucket")
+    .location_constraint("cn-north-4")
+    .send()
+    .await?;
+
+// List objects in a bucket
+let result = client.list_objects()
+    .bucket("my-bucket")
+    .prefix("photos/")
+    .max_keys(100)
+    .send()
+    .await?;
+
+for object in result.contents() {
+    println!("Object: {} ({} bytes)", object.key(), object.size());
 }
 ```
 
-### 列出所有存储桶
+### Object Operations
 
 ```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, bucket::BucketTrait};
+// Upload an object
+let data = b"Hello, World!";
+let result = client.put_object()
+    .bucket("my-bucket")
+    .key("hello.txt")
+    .body(data.to_vec())
+    .content_type("text/plain")
+    .send()
+    .await?;
 
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    let buckets = obs.list_buckets().await?;
-    for bucket in buckets.buckets.bucket {
-        println!("Bucket: {} - Created: {}", bucket.name, bucket.creation_date);
+println!("ETag: {:?}", result.etag());
+
+// Download an object
+let result = client.get_object()
+    .bucket("my-bucket")
+    .key("hello.txt")
+    .send()
+    .await?;
+
+let content = result.body();
+println!("Content: {:?}", content);
+
+// Delete an object
+client.delete_object()
+    .bucket("my-bucket")
+    .key("hello.txt")
+    .send()
+    .await?;
+```
+
+## API Reference
+
+### Client Configuration
+
+| Method | Description |
+|--------|-------------|
+| `Config::builder()` | Create a new configuration builder |
+| `.access_key(ak, sk)` | Set access key credentials |
+| `.region_name(name)` | Set region by name |
+| `.endpoint(url)` | Set custom endpoint |
+| `.timeout(duration)` | Set request timeout |
+| `.secure(bool)` | Enable/disable HTTPS |
+
+### Bucket Operations
+
+| Method | Description |
+|--------|-------------|
+| `client.list_buckets()` | List all buckets |
+| `client.create_bucket()` | Create a new bucket |
+| `client.delete_bucket()` | Delete a bucket |
+| `client.get_bucket_location()` | Get bucket location |
+| `client.list_objects()` | List objects (v1) |
+| `client.list_objects_v2()` | List objects (v2) |
+
+### Object Operations
+
+| Method | Description |
+|--------|-------------|
+| `client.put_object()` | Upload an object |
+| `client.get_object()` | Download an object |
+| `client.delete_object()` | Delete an object |
+| `client.delete_objects()` | Delete multiple objects |
+| `client.copy_object()` | Copy an object |
+| `client.head_object()` | Get object metadata |
+| `client.append_object()` | Append to an object |
+
+## Examples
+
+See the [`examples/`](examples/) directory for more examples:
+
+- [`pub_object.rs`](examples/pub_object.rs) - Upload an object
+- [`get_object.rs`](examples/get_object.rs) - Download an object
+
+## Error Handling
+
+```rust
+use huaweicloud_sdk_rust_obs::{Client, ObsError};
+
+match client.get_object().bucket("bucket").key("key").send().await {
+    Ok(result) => println!("Got object: {:?}", result.content_length()),
+    Err(ObsError::ServiceError { status, message, .. }) => {
+        eprintln!("Service error: {} - {}", status, message);
     }
-    
-    Ok(())
+    Err(e) => eprintln!("Error: {}", e),
 }
 ```
 
-### 创建存储桶
+## Development
 
-```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, bucket::BucketTrait};
+### Running Tests
 
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    // 创建一个新的存储桶，指定区域
-    obs.create_bucket("my-new-bucket", Some("cn-south-1")).await?;
-    println!("Bucket created successfully!");
-    
-    Ok(())
-}
+```bash
+# Set environment variables
+export OBS_ACCESS_KEY_ID=your_access_key
+export OBS_SECRET_ACCESS_KEY=your_secret_key
+export OBS_BUCKET=your_bucket
+export OBS_ENDPOINT=obs.cn-north-4.myhuaweicloud.com
+
+# Run tests
+cargo test
 ```
 
-### 上传对象
+### Building
 
-```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, object::ObjectTrait};
-
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    // 上传文本数据
-    let text_data = b"Hello, OBS!";
-    obs.put_object(&bucket, "hello.txt", text_data).await?;
-    
-    // 上传二进制数据（如图片）
-    let image_data = include_bytes!("path/to/image.jpg");
-    obs.put_object(&bucket, "image.jpg", image_data).await?;
-    
-    println!("Objects uploaded successfully!");
-    
-    Ok(())
-}
+```bash
+cargo build --release
 ```
 
-### 下载对象
+## License
 
-```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, object::ObjectTrait};
+Licensed under either of:
 
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    // 下载对象
-    let data = obs.get_object(&bucket, "hello.txt").await?;
-    let content = String::from_utf8_lossy(&data);
-    println!("Downloaded content: {}", content);
-    
-    Ok(())
-}
-```
+- Apache License, Version 2.0 ([LICENSE-APACHE-2.0](LICENSE-APACHE-2.0))
+- MIT License ([LICENSE-MIT](LICENSE-MIT))
 
-### 列出存储桶中的对象
+at your option.
 
-```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, bucket::BucketTrait};
+## Contributing
 
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    // 列出存储桶中的所有对象
-    let result = obs.list_objects(&bucket, None, None, Some(100)).await?;
-    
-    for object in result.contents.unwrap_or_default() {
-        println!("Object: {} - Size: {} bytes - Modified: {}", 
-                 object.key, object.size, object.last_modified);
-    }
-    
-    Ok(())
-}
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### 获取存储桶位置
+## Changelog
 
-```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, bucket::BucketTrait};
+### v1.0.0
 
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    // 获取存储桶的位置信息
-    let location = obs.bucket_location(&bucket).await?;
-    println!("Bucket location: {}", location.location);
-    
-    Ok(())
-}
-```
-
-### 复制对象
-
-```rust
-use huaweicloud_sdk_rust_obs::{client, error::ObsError, object::ObjectTrait};
-
-#[tokio::main]
-async fn main() -> Result<(), ObsError> {
-    // ... 初始化客户端 (见上面) ...
-    
-    // 复制同一个存储桶中的对象
-    let result = obs.copy_object(&bucket, "source-object.txt", "destination-object.txt").await?;
-    println!("Object copied. ETag: {}", result.etag);
-    
-    Ok(())
-}
-```
-## 测试
-
-1. 在项目根目录添加 `.env`文件，内容格式如下：
-
-```
-OBS_AK=XXXXXXXXXXXXXXX
-OBS_SK=XXXXXXXXXXXXXXXXXXXX
-OBS_BUCKET=your-bucket-name
-ENDPOINT=obs.your-region.myhuaweicloud.com
-```
-
-2. 运行 `cargo test`
+- **Breaking Change**: Complete API redesign following AWS SDK style
+- Added fluent builder pattern for all operations
+- Added comprehensive type-safe input/output types
+- Improved error handling with detailed error types
+- Added support for all major bucket and object operations
+- Updated documentation and examples
