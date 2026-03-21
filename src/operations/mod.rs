@@ -8,9 +8,11 @@
 //! - A `.send()` method to execute the request
 
 mod bucket;
+mod multipart;
 mod object;
 
 pub use bucket::*;
+pub use multipart::*;
 pub use object::*;
 
 use crate::client::Client;

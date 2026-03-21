@@ -101,6 +101,62 @@ client.delete_object()
     .await?;
 ```
 
+### Multipart Upload
+
+For large files, use multipart upload for better reliability and performance:
+
+```rust
+// 1. Initiate multipart upload
+let initiate_result = client.initiate_multipart_upload()
+    .bucket("my-bucket")
+    .key("large-file.zip")
+    .content_type("application/zip")
+    .send()
+    .await?;
+
+let upload_id = initiate_result.upload_id();
+println!("Upload ID: {}", upload_id);
+
+// 2. Upload parts
+let mut completed_parts = Vec::new();
+for part_num in 1..=3 {
+    let part_data = vec![0u8; 1024 * 1024]; // 1MB per part
+    
+    let part_result = client.upload_part()
+        .bucket("my-bucket")
+        .key("large-file.zip")
+        .upload_id(upload_id)
+        .part_number(part_num)
+        .body(part_data)
+        .send()
+        .await?;
+    
+    completed_parts.push(CompletedPart::new(part_num, part_result.etag()));
+}
+
+// 3. Complete multipart upload
+let complete_result = client.complete_multipart_upload()
+    .bucket("my-bucket")
+    .key("large-file.zip")
+    .upload_id(upload_id)
+    .parts(completed_parts)
+    .send()
+    .await?;
+
+println!("ETag: {}", complete_result.etag());
+```
+
+You can also abort a multipart upload:
+
+```rust
+client.abort_multipart_upload()
+    .bucket("my-bucket")
+    .key("large-file.zip")
+    .upload_id(upload_id)
+    .send()
+    .await?;
+```
+
 ### Streaming Upload
 
 For large files or when you want to stream data directly without loading everything into memory:
@@ -166,6 +222,18 @@ println!("ETag: {:?}", result.etag());
 | `client.head_object()` | Get object metadata |
 | `client.append_object()` | Append to an object |
 
+### Multipart Upload Operations
+
+| Method | Description |
+|--------|-------------|
+| `client.initiate_multipart_upload()` | Initialize a multipart upload |
+| `client.upload_part()` | Upload a part |
+| `client.copy_part()` | Copy a part from an existing object |
+| `client.list_parts()` | List uploaded parts |
+| `client.complete_multipart_upload()` | Complete a multipart upload |
+| `client.abort_multipart_upload()` | Abort a multipart upload |
+| `client.list_multipart_uploads()` | List in-progress multipart uploads |
+
 ## Examples
 
 See the [`examples/`](examples/) directory for more examples:
@@ -223,6 +291,18 @@ at your option.
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Changelog
+
+### v1.1.0
+
+- **New**: Multipart upload support for large files
+  - `initiate_multipart_upload()` - Initialize a multipart upload
+  - `upload_part()` - Upload a part
+  - `copy_part()` - Copy a part from an existing object
+  - `list_parts()` - List uploaded parts
+  - `complete_multipart_upload()` - Complete a multipart upload
+  - `abort_multipart_upload()` - Abort a multipart upload
+  - `list_multipart_uploads()` - List in-progress multipart uploads
+- Added comprehensive tests for multipart upload operations
 
 ### v1.0.0
 
