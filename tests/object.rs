@@ -662,3 +662,166 @@ async fn test_object_acl() -> Result<(), ObsError> {
 
     Ok(())
 }
+
+/// 测试流式上传
+#[tokio::test]
+async fn test_streaming_upload() -> Result<(), ObsError> {
+    let obs = common::setup()?;
+    let bucket = env::var("OBS_BUCKET").expect("OBS_BUCKET must be set");
+    let test_id = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let key = format!("test-streaming-{}.txt", test_id);
+
+    // 使用 futures::stream 创建流式上传
+    use futures::stream;
+    use reqwest::Body;
+
+    // 创建数据块
+    let data1 = bytes::Bytes::from("Hello, ");
+    let data2 = bytes::Bytes::from("OBS ");
+    let data3 = bytes::Bytes::from("Streaming!");
+    let total_size = data1.len() + data2.len() + data3.len();
+
+    // 创建流
+    let stream = stream::iter(vec![
+        Ok::<_, std::io::Error>(data1),
+        Ok(data2),
+        Ok(data3),
+    ]);
+    let body = Body::wrap_stream(stream);
+
+    // 流式上传
+    let put_result = obs.put_object()
+        .bucket(&bucket)
+        .key(&key)
+        .streaming_body(body)
+        .content_length(total_size as u64)
+        .content_type("text/plain")
+        .send()
+        .await?;
+
+    println!("Streaming upload successful");
+    println!("  Key: {}", key);
+    println!("  ETag: {:?}", put_result.etag());
+    assert!(put_result.etag().is_some(), "ETag should exist");
+
+    // 验证上传的内容
+    let get_result = obs.get_object()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    let expected_content = b"Hello, OBS Streaming!";
+    assert_eq!(get_result.body().as_ref(), expected_content, "Content should match");
+    println!("  Content verified: correct");
+
+    // 清理
+    obs.delete_object()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    println!("  Cleaned up: {}", key);
+
+    Ok(())
+}
+
+/// 测试流式上传 - 大文件分块
+#[tokio::test]
+async fn test_streaming_upload_chunked() -> Result<(), ObsError> {
+    let obs = common::setup()?;
+    let bucket = env::var("OBS_BUCKET").expect("OBS_BUCKET must be set");
+    let test_id = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    let key = format!("test-streaming-chunked-{}.bin", test_id);
+
+    use futures::stream;
+    use reqwest::Body;
+
+    // 创建一个较大的测试数据（分多个块上传）
+    let chunk_size = 1024;
+    let num_chunks = 10;
+    let total_size = chunk_size * num_chunks;
+
+    // 创建数据块
+    let chunks: Vec<Result<bytes::Bytes, std::io::Error>> = (0..num_chunks)
+        .map(|i| {
+            let chunk = vec![(i % 256) as u8; chunk_size];
+            Ok(bytes::Bytes::from(chunk))
+        })
+        .collect();
+
+    let stream = stream::iter(chunks);
+    let body = Body::wrap_stream(stream);
+
+    // 流式上传
+    let put_result = obs.put_object()
+        .bucket(&bucket)
+        .key(&key)
+        .streaming_body(body)
+        .content_length(total_size as u64)
+        .content_type("application/octet-stream")
+        .send()
+        .await?;
+
+    println!("Chunked streaming upload successful");
+    println!("  Key: {}", key);
+    println!("  Total size: {} bytes", total_size);
+    println!("  ETag: {:?}", put_result.etag());
+    assert!(put_result.etag().is_some(), "ETag should exist");
+
+    // 验证上传的内容大小
+    let get_result = obs.get_object()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    assert_eq!(get_result.content_length(), Some(total_size as u64), "Content length should match");
+    println!("  Content length verified: {} bytes", total_size);
+
+    // 清理
+    obs.delete_object()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    println!("  Cleaned up: {}", key);
+
+    Ok(())
+}
+
+/// 测试流式上传 - 缺少 content_length 应该报错
+#[tokio::test]
+async fn test_streaming_upload_without_content_length() -> Result<(), ObsError> {
+    let obs = common::setup()?;
+    let bucket = env::var("OBS_BUCKET").expect("OBS_BUCKET must be set");
+
+    use futures::stream;
+    use reqwest::Body;
+
+    let data = bytes::Bytes::from("test data");
+    let stream = stream::iter(vec![Ok::<_, std::io::Error>(data)]);
+    let body = Body::wrap_stream(stream);
+
+    // 不设置 content_length，应该返回错误
+    let result = obs.put_object()
+        .bucket(&bucket)
+        .key("test-no-content-length.txt")
+        .streaming_body(body)
+        // 故意不设置 .content_length()
+        .send()
+        .await;
+
+    assert!(result.is_err(), "Should fail without content_length");
+    match result {
+        Err(ObsError::InvalidInput(msg)) => {
+            assert!(msg.contains("content_length"), "Error message should mention content_length");
+            println!("Correctly rejected: {}", msg);
+        }
+        _ => panic!("Expected InvalidInput error"),
+    }
+
+    Ok(())
+}

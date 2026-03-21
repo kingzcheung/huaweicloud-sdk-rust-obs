@@ -4,14 +4,13 @@ use std::collections::HashMap;
 
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Method,
+    Body, Method,
 };
 
 use crate::client::Client;
 use crate::error::{ObsError, Result};
 
 /// Fluent builder for the PutObject operation.
-#[derive(Debug, Clone)]
 pub struct PutObjectFluentBuilder {
     client: Client,
     inner: PutObjectInput,
@@ -40,7 +39,13 @@ impl PutObjectFluentBuilder {
 
     /// Set the object body.
     pub fn body(mut self, body: Vec<u8>) -> Self {
-        self.inner.body = Some(body);
+        self.inner.body = Some(PutObjectBody::Bytes(body));
+        self
+    }
+
+    /// Set the object body from a stream.
+    pub fn streaming_body(mut self, body: impl Into<Body>) -> Self {
+        self.inner.body = Some(PutObjectBody::Stream(body.into()));
         self
     }
 
@@ -80,8 +85,14 @@ impl PutObjectFluentBuilder {
         self
     }
 
+    /// Set the content length (required for streaming uploads).
+    pub fn content_length(mut self, content_length: u64) -> Self {
+        self.inner.content_length = Some(content_length);
+        self
+    }
+
     /// Send the request.
-    pub async fn send(&self) -> Result<PutObjectOutput> {
+    pub async fn send(self) -> Result<PutObjectOutput> {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
 
@@ -92,13 +103,39 @@ impl PutObjectFluentBuilder {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
         }
 
-        let body = self.inner.body.clone().unwrap_or_default();
         let mut headers = HeaderMap::new();
 
-        headers.insert(
-            "Content-Length",
-            HeaderValue::from_str(&body.len().to_string()).unwrap(),
-        );
+        // Handle body
+        let body = match self.inner.body {
+            Some(PutObjectBody::Bytes(bytes)) => {
+                headers.insert(
+                    "Content-Length",
+                    HeaderValue::from_str(&bytes.len().to_string()).unwrap(),
+                );
+                Some(Body::from(bytes))
+            }
+            Some(PutObjectBody::Stream(stream)) => {
+                // For streaming, content_length must be set
+                if let Some(content_length) = self.inner.content_length {
+                    headers.insert(
+                        "Content-Length",
+                        HeaderValue::from_str(&content_length.to_string()).unwrap(),
+                    );
+                } else {
+                    return Err(ObsError::InvalidInput(
+                        "content_length is required for streaming uploads".to_string(),
+                    ));
+                }
+                Some(stream)
+            }
+            None => {
+                headers.insert(
+                    "Content-Length",
+                    HeaderValue::from_str("0").unwrap(),
+                );
+                None
+            }
+        };
 
         if let Some(ref content_type) = self.inner.content_type {
             headers.insert(
@@ -145,7 +182,7 @@ impl PutObjectFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::PUT, Some(bucket), Some(key), Some(headers), None, Some(body))
+            .do_request_streaming(Method::PUT, Some(bucket), Some(key), Some(headers), None, body)
             .await?;
 
         let status = resp.status();
@@ -170,18 +207,45 @@ impl PutObjectFluentBuilder {
     }
 }
 
+impl std::fmt::Debug for PutObjectFluentBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PutObjectFluentBuilder")
+            .field("client", &self.client)
+            .field("inner", &self.inner)
+            .finish()
+    }
+}
+
+/// Body type for PutObject operation.
+pub enum PutObjectBody {
+    /// Bytes body.
+    Bytes(Vec<u8>),
+    /// Streaming body.
+    Stream(Body),
+}
+
+impl std::fmt::Debug for PutObjectBody {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PutObjectBody::Bytes(bytes) => f.debug_tuple("Bytes").field(&bytes.len()).finish(),
+            PutObjectBody::Stream(_) => f.write_str("Stream(..)"),
+        }
+    }
+}
+
 /// Input for the PutObject operation.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct PutObjectInput {
     bucket: String,
     key: String,
-    body: Option<Vec<u8>>,
+    body: Option<PutObjectBody>,
     content_type: Option<String>,
     content_encoding: Option<String>,
     content_disposition: Option<String>,
     cache_control: Option<String>,
     storage_class: Option<String>,
     metadata: Option<HashMap<String, String>>,
+    content_length: Option<u64>,
 }
 
 /// Output for the PutObject operation.

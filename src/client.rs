@@ -29,7 +29,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use reqwest::{header::HeaderMap, Method, Response};
+use reqwest::{header::HeaderMap, Body, Method, Response};
 
 use crate::auth::Authorization;
 use crate::config::{Config, SignatureType};
@@ -250,6 +250,69 @@ impl Client {
         headers: Option<HeaderMap>,
         params: Option<HashMap<String, String>>,
         body: Option<Vec<u8>>,
+    ) -> Result<Response> {
+        let mut auth_headers: HashMap<String, Vec<String>> = HashMap::new();
+        let mut req_headers = if let Some(h) = headers {
+            for (k, v) in &h {
+                if let Ok(v) = v.to_str() {
+                    auth_headers.insert(k.as_str().to_string(), vec![v.to_string()]);
+                }
+            }
+            h
+        } else {
+            HeaderMap::new()
+        };
+
+        let (request_uri, canonicalized_url) = self.format_urls(bucket, key, params.as_ref());
+
+        let url = if let Some(bucket) = bucket {
+            if request_uri.is_empty() {
+                format!(
+                    "https://{}.{}",
+                    bucket,
+                    self.config.region().endpoint()
+                )
+            } else {
+                format!(
+                    "https://{}.{}/{}",
+                    bucket,
+                    self.config.region().endpoint(),
+                    &request_uri
+                )
+            }
+        } else {
+            // For ListBuckets (no bucket), URL should end with /
+            format!("https://{}/", self.config.region().endpoint())
+        };
+
+        let auth_headers = self.auth(
+            method.as_str(),
+            bucket.unwrap_or(""),
+            HashMap::new(),
+            auth_headers,
+            canonicalized_url,
+        )?;
+        req_headers.extend(auth_headers);
+
+        let mut req = self.http_client.request(method, url).headers(req_headers);
+
+        if let Some(body) = body {
+            req = req.body(body);
+        }
+
+        let res = req.send().await?;
+        Ok(res)
+    }
+
+    /// Execute an HTTP request with streaming body and authentication.
+    pub(crate) async fn do_request_streaming(
+        &self,
+        method: Method,
+        bucket: Option<&str>,
+        key: Option<&str>,
+        headers: Option<HeaderMap>,
+        params: Option<HashMap<String, String>>,
+        body: Option<Body>,
     ) -> Result<Response> {
         let mut auth_headers: HashMap<String, Vec<String>> = HashMap::new();
         let mut req_headers = if let Some(h) = headers {
