@@ -292,27 +292,3 @@ cargo build --release
 ## 贡献
 
 欢迎贡献！请随时提交 Pull Request。
-
-## 更新日志
-
-### v1.1.0
-
-- **新增**: 大文件分段上传支持
-  - `initiate_multipart_upload()` - 初始化分段上传
-  - `upload_part()` - 上传段
-  - `copy_part()` - 从现有对象复制段
-  - `list_parts()` - 列出已上传的段
-  - `complete_multipart_upload()` - 合并段
-  - `abort_multipart_upload()` - 取消分段上传
-  - `list_multipart_uploads()` - 列出进行中的分段上传
-- 添加分段上传操作的完整测试
-
-### v1.0.0
-
-- **重大变更**: 完全重新设计 API，采用流式构建器模式
-- 所有操作采用流式构建器模式
-- 添加完善的类型安全输入/输出类型
-- 改进错误处理，提供详细的错误类型
-- 支持所有主要的桶和对象操作
-- **新增**: `put_object` 操作支持流式上传
-- 更新文档和示例

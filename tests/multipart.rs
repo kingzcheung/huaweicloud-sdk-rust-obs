@@ -298,7 +298,7 @@ async fn test_list_multipart_uploads() -> Result<(), ObsError> {
     let list_result = obs
         .list_multipart_uploads()
         .bucket(&bucket)
-        .prefix(&format!("test-list-uploads-{}", test_id))
+        .prefix(format!("test-list-uploads-{}", test_id))
         .max_uploads(10)
         .send()
         .await?;

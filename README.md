@@ -292,27 +292,3 @@ at your option.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Changelog
-
-### v1.1.0
-
-- **New**: Multipart upload support for large files
-  - `initiate_multipart_upload()` - Initialize a multipart upload
-  - `upload_part()` - Upload a part
-  - `copy_part()` - Copy a part from an existing object
-  - `list_parts()` - List uploaded parts
-  - `complete_multipart_upload()` - Complete a multipart upload
-  - `abort_multipart_upload()` - Abort a multipart upload
-  - `list_multipart_uploads()` - List in-progress multipart uploads
-- Added comprehensive tests for multipart upload operations
-
-### v1.0.0
-
-- **Breaking Change**: Complete API redesign with fluent builder pattern
-- Added fluent builder pattern for all operations
-- Added comprehensive type-safe input/output types
-- Improved error handling with detailed error types
-- Added support for all major bucket and object operations
-- **New**: Streaming upload support for `put_object` operation
-- Updated documentation and examples
