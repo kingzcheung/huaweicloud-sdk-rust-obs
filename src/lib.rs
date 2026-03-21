@@ -106,7 +106,7 @@ pub use operations::{
     Bucket, Owner, ObjectInfo,
     
     // Object operations
-    PutObjectFluentBuilder, PutObjectOutput,
+    PutObjectFluentBuilder, PutObjectOutput, PutObjectBody,
     GetObjectFluentBuilder, GetObjectOutput,
     DeleteObjectFluentBuilder, DeleteObjectOutput,
     DeleteObjectsFluentBuilder, DeleteObjectsOutput,

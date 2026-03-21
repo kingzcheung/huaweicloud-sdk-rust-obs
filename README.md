@@ -101,6 +101,35 @@ client.delete_object()
     .await?;
 ```
 
+### Streaming Upload
+
+For large files or when you want to stream data directly without loading everything into memory:
+
+```rust
+use futures::stream;
+use reqwest::Body;
+
+// Create a stream from data chunks
+let data1 = bytes::Bytes::from("Hello, ");
+let data2 = bytes::Bytes::from("OBS!");
+let total_size = data1.len() + data2.len();
+
+let stream = stream::iter(vec![Ok(data1), Ok(data2)]);
+let body = Body::wrap_stream(stream);
+
+// Upload using streaming
+let result = client.put_object()
+    .bucket("my-bucket")
+    .key("streaming.txt")
+    .streaming_body(body)
+    .content_length(total_size as u64)  // Required for streaming
+    .content_type("text/plain")
+    .send()
+    .await?;
+
+println!("ETag: {:?}", result.etag());
+```
+
 ## API Reference
 
 ### Client Configuration
@@ -143,6 +172,7 @@ See the [`examples/`](examples/) directory for more examples:
 
 - [`pub_object.rs`](examples/pub_object.rs) - Upload an object
 - [`get_object.rs`](examples/get_object.rs) - Download an object
+- [`streaming_upload.rs`](examples/streaming_upload.rs) - Streaming upload for large files
 
 ## Error Handling
 
@@ -201,4 +231,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Added comprehensive type-safe input/output types
 - Improved error handling with detailed error types
 - Added support for all major bucket and object operations
+- **New**: Streaming upload support for `put_object` operation
 - Updated documentation and examples
