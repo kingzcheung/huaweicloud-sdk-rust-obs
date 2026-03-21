@@ -48,9 +48,11 @@ impl AbortMultipartUploadFluentBuilder {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
         let upload_id = &self.inner.upload_id;
-        
+
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -64,11 +66,18 @@ impl AbortMultipartUploadFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::DELETE, Some(bucket), Some(key), None, Some(params), None)
+            .do_request(
+                Method::DELETE,
+                Some(bucket),
+                Some(key),
+                None,
+                Some(params),
+                None,
+            )
             .await?;
 
         let status = resp.status();
-        
+
         // AbortMultipartUpload returns 204 No Content on success
         if !status.is_success() {
             let text = resp.text().await?;

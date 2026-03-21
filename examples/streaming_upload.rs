@@ -25,7 +25,8 @@ async fn main() -> Result<(), ObsError> {
     dotenvy::dotenv().ok();
 
     let access_key_id = env::var("OBS_ACCESS_KEY_ID").expect("OBS_ACCESS_KEY_ID must be set");
-    let secret_access_key = env::var("OBS_SECRET_ACCESS_KEY").expect("OBS_SECRET_ACCESS_KEY must be set");
+    let secret_access_key =
+        env::var("OBS_SECRET_ACCESS_KEY").expect("OBS_SECRET_ACCESS_KEY must be set");
     let bucket = env::var("OBS_BUCKET").expect("OBS_BUCKET must be set");
     let endpoint = env::var("OBS_ENDPOINT").expect("OBS_ENDPOINT must be set");
 
@@ -43,18 +44,18 @@ async fn main() -> Result<(), ObsError> {
     // Example 1: Streaming upload from a byte stream
     // ========================================
     println!("\n[Example 1] Streaming upload from a byte stream...");
-    
+
     // Create some data chunks
     let data1 = bytes::Bytes::from("Hello, ");
     let data2 = bytes::Bytes::from("OBS ");
     let data3 = bytes::Bytes::from("Streaming!");
-    
+
     let total_size = data1.len() + data2.len() + data3.len();
-    
+
     // Create a stream from the chunks
     let stream = stream::iter(vec![Ok::<_, std::io::Error>(data1), Ok(data2), Ok(data3)]);
     let body = Body::wrap_stream(stream);
-    
+
     let key = "streaming-upload-test.txt";
     let result = client
         .put_object()
@@ -75,24 +76,26 @@ async fn main() -> Result<(), ObsError> {
     // Example 2: Streaming upload from a file using async channel
     // ========================================
     println!("\n[Example 2] Streaming upload from a file...");
-    
+
     // Read file content
     let file_path = "testdata/test.jpeg";
-    let file_content = tokio::fs::read(file_path).await.expect("Failed to read file");
+    let file_content = tokio::fs::read(file_path)
+        .await
+        .expect("Failed to read file");
     let file_size = file_content.len() as u64;
-    
+
     println!("File size: {} bytes", file_size);
-    
+
     // Create a stream from the file content (split into chunks for demonstration)
     let chunk_size = 1024;
     let chunks: Vec<Result<bytes::Bytes, std::io::Error>> = file_content
         .chunks(chunk_size)
         .map(|chunk| Ok(bytes::Bytes::copy_from_slice(chunk)))
         .collect();
-    
+
     let stream = stream::iter(chunks);
     let body = Body::wrap_stream(stream);
-    
+
     let key = "streaming-upload-test.jpeg";
     let result = client
         .put_object()
@@ -113,7 +116,7 @@ async fn main() -> Result<(), ObsError> {
     // Example 3: Regular upload (for comparison)
     // ========================================
     println!("\n[Example 3] Regular upload (non-streaming)...");
-    
+
     let key = "regular-upload-test.txt";
     let content = b"Hello, OBS! This is a regular upload.";
     let result = client

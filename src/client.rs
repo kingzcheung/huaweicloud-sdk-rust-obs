@@ -404,11 +404,7 @@ impl Client {
 
         let url = if let Some(bucket) = bucket {
             if request_uri.is_empty() {
-                format!(
-                    "https://{}.{}",
-                    bucket,
-                    self.config.region().endpoint()
-                )
+                format!("https://{}.{}", bucket, self.config.region().endpoint())
             } else {
                 format!(
                     "https://{}.{}/{}",
@@ -467,11 +463,7 @@ impl Client {
 
         let url = if let Some(bucket) = bucket {
             if request_uri.is_empty() {
-                format!(
-                    "https://{}.{}",
-                    bucket,
-                    self.config.region().endpoint()
-                )
+                format!("https://{}.{}", bucket, self.config.region().endpoint())
             } else {
                 format!(
                     "https://{}.{}/{}",
@@ -530,7 +522,7 @@ impl Client {
                         // Sort params for consistent signature calculation
                         let mut sorted_params: Vec<_> = params.iter().collect();
                         sorted_params.sort_by(|a, b| a.0.cmp(b.0));
-                        
+
                         canonicalized_resource.push('?');
                         let mut uri_params = vec![];
                         for (k, v) in &sorted_params {
@@ -562,7 +554,10 @@ impl Client {
             }
         }
 
-        (uri, canonicalized_resource.trim_end_matches('?').to_string())
+        (
+            uri,
+            canonicalized_resource.trim_end_matches('?').to_string(),
+        )
     }
 }
 
@@ -582,7 +577,11 @@ impl ClientBuilder {
     }
 
     /// Set the access key credentials.
-    pub fn access_key(mut self, access_key_id: impl Into<String>, secret_access_key: impl Into<String>) -> Self {
+    pub fn access_key(
+        mut self,
+        access_key_id: impl Into<String>,
+        secret_access_key: impl Into<String>,
+    ) -> Self {
         self.config = Config::builder()
             .access_key(access_key_id, secret_access_key)
             .region(self.config.region().clone())
@@ -594,10 +593,8 @@ impl ClientBuilder {
     /// Set the endpoint.
     pub fn endpoint(mut self, endpoint: impl Into<String>) -> Self {
         let endpoint = endpoint.into();
-        let endpoint = endpoint
-            .replace("https://", "")
-            .replace("http://", "");
-        
+        let endpoint = endpoint.replace("https://", "").replace("http://", "");
+
         self.config = Config::builder()
             .access_key(
                 self.config.credentials().access_key_id(),

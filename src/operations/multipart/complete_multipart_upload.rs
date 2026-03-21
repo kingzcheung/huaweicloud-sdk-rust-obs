@@ -76,9 +76,11 @@ impl CompleteMultipartUploadFluentBuilder {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
         let upload_id = &self.inner.upload_id;
-        
+
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -87,7 +89,9 @@ impl CompleteMultipartUploadFluentBuilder {
             return Err(ObsError::InvalidInput("upload ID is required".to_string()));
         }
         if self.inner.parts.is_empty() {
-            return Err(ObsError::InvalidInput("at least one part is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "at least one part is required".to_string(),
+            ));
         }
 
         // Sort parts by part number
@@ -113,10 +117,12 @@ impl CompleteMultipartUploadFluentBuilder {
         // Build XML body
         let xml_parts: Vec<String> = sorted_parts
             .iter()
-            .map(|p| format!(
-                "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>",
-                p.part_number, p.etag
-            ))
+            .map(|p| {
+                format!(
+                    "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>",
+                    p.part_number, p.etag
+                )
+            })
             .collect();
 
         let body = format!(
@@ -126,7 +132,14 @@ impl CompleteMultipartUploadFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::POST, Some(bucket), Some(key), Some(headers), Some(params), Some(body.into_bytes()))
+            .do_request(
+                Method::POST,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                Some(params),
+                Some(body.into_bytes()),
+            )
             .await?;
 
         let status = resp.status();
@@ -136,8 +149,7 @@ impl CompleteMultipartUploadFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: CompleteMultipartUploadResultXml =
-            crate::xml_utils::from_xml(&text)?;
+        let result: CompleteMultipartUploadResultXml = crate::xml_utils::from_xml(&text)?;
 
         Ok(CompleteMultipartUploadOutput::from(result))
     }

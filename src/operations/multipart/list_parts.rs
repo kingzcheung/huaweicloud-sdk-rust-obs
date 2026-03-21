@@ -71,9 +71,11 @@ impl ListPartsFluentBuilder {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
         let upload_id = &self.inner.upload_id;
-        
+
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -99,7 +101,14 @@ impl ListPartsFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::GET, Some(bucket), Some(key), None, Some(params), None)
+            .do_request(
+                Method::GET,
+                Some(bucket),
+                Some(key),
+                None,
+                Some(params),
+                None,
+            )
             .await?;
 
         let status = resp.status();
@@ -109,8 +118,7 @@ impl ListPartsFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: ListPartsResultXml =
-            crate::xml_utils::from_xml(&text)?;
+        let result: ListPartsResultXml = crate::xml_utils::from_xml(&text)?;
 
         Ok(ListPartsOutput::from(result))
     }

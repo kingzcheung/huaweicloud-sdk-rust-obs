@@ -79,7 +79,9 @@ impl SetObjectAclFluentBuilder {
         let key = &self.inner.key;
 
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -113,7 +115,14 @@ impl SetObjectAclFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::PUT, Some(bucket), Some(key), Some(headers), Some(params), body)
+            .do_request(
+                Method::PUT,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                Some(params),
+                body,
+            )
             .await?;
 
         let status = resp.status();
@@ -208,7 +217,10 @@ pub struct Grant {
 impl Grant {
     /// Create a new grant.
     pub fn new(grantee: Grantee, permission: Permission) -> Self {
-        Self { grantee, permission }
+        Self {
+            grantee,
+            permission,
+        }
     }
 
     /// Get the grantee.

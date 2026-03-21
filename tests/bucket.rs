@@ -33,10 +33,7 @@ async fn test_create_and_delete_bucket() -> Result<(), ObsError> {
     println!("Created bucket: {}", bucket_name);
 
     // Delete bucket
-    obs.delete_bucket()
-        .bucket(&bucket_name)
-        .send()
-        .await?;
+    obs.delete_bucket().bucket(&bucket_name).send().await?;
 
     println!("Deleted bucket: {}", bucket_name);
 
@@ -58,7 +55,8 @@ async fn test_list_objects() -> Result<(), ObsError> {
     let bucket_name = buckets.buckets()[0].name();
 
     // List objects in the first bucket
-    let result = obs.list_objects()
+    let result = obs
+        .list_objects()
         .bucket(bucket_name)
         .max_keys(10)
         .send()
@@ -87,10 +85,7 @@ async fn test_get_bucket_location() -> Result<(), ObsError> {
     let bucket_name = buckets.buckets()[0].name();
 
     // Get bucket location
-    let result = obs.get_bucket_location()
-        .bucket(bucket_name)
-        .send()
-        .await?;
+    let result = obs.get_bucket_location().bucket(bucket_name).send().await?;
 
     println!("Bucket '{}' location: {}", bucket_name, result.location());
 

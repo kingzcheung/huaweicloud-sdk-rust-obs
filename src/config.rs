@@ -202,7 +202,11 @@ impl ConfigBuilder {
     }
 
     /// Set the credentials from access key ID and secret access key.
-    pub fn access_key(mut self, access_key_id: impl Into<String>, secret_access_key: impl Into<String>) -> Self {
+    pub fn access_key(
+        mut self,
+        access_key_id: impl Into<String>,
+        secret_access_key: impl Into<String>,
+    ) -> Self {
         self.credentials = Some(Credentials::new(access_key_id, secret_access_key));
         self
     }

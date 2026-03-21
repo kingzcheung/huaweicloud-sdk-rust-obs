@@ -47,7 +47,9 @@ impl DeleteObjectFluentBuilder {
         let key = &self.inner.key;
 
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -60,7 +62,14 @@ impl DeleteObjectFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::DELETE, Some(bucket), Some(key), None, Some(params), None)
+            .do_request(
+                Method::DELETE,
+                Some(bucket),
+                Some(key),
+                None,
+                Some(params),
+                None,
+            )
             .await?;
 
         let status = resp.status();

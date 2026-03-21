@@ -84,7 +84,9 @@ impl ListMultipartUploadsFluentBuilder {
     pub async fn send(&self) -> Result<ListMultipartUploadsOutput> {
         let bucket = &self.inner.bucket;
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
@@ -126,8 +128,7 @@ impl ListMultipartUploadsFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: ListMultipartUploadsResultXml =
-            crate::xml_utils::from_xml(&text)?;
+        let result: ListMultipartUploadsResultXml = crate::xml_utils::from_xml(&text)?;
 
         Ok(ListMultipartUploadsOutput::from(result))
     }
