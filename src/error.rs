@@ -44,10 +44,6 @@ pub enum ObsError {
     #[error("failed to serialize request: {0}")]
     Serialization(String),
 
-    /// Error occurred while parsing JSON.
-    #[error("failed to parse JSON: {0}")]
-    JsonParse(#[from] serde_json::Error),
-
     /// Invalid input parameter.
     #[error("invalid input: {0}")]
     InvalidInput(String),
@@ -107,11 +103,14 @@ impl ObsError {
         match self {
             ObsError::HttpError(e) => e.is_timeout() || e.is_connect(),
             ObsError::ServiceError { status, .. } => {
-                matches!(status, &StatusCode::INTERNAL_SERVER_ERROR 
-                    | &StatusCode::BAD_GATEWAY 
-                    | &StatusCode::SERVICE_UNAVAILABLE 
-                    | &StatusCode::GATEWAY_TIMEOUT
-                    | &StatusCode::TOO_MANY_REQUESTS)
+                matches!(
+                    status,
+                    &StatusCode::INTERNAL_SERVER_ERROR
+                        | &StatusCode::BAD_GATEWAY
+                        | &StatusCode::SERVICE_UNAVAILABLE
+                        | &StatusCode::GATEWAY_TIMEOUT
+                        | &StatusCode::TOO_MANY_REQUESTS
+                )
             }
             _ => false,
         }

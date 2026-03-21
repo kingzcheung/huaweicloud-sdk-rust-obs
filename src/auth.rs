@@ -62,7 +62,8 @@ impl Authorization for Client {
         canonicalized_resource: String,
     ) -> Result<String> {
         // Build the string to sign
-        let string_to_sign = build_string_to_sign(method, headers.clone(), canonicalized_resource, true);
+        let string_to_sign =
+            build_string_to_sign(method, headers.clone(), canonicalized_resource, true);
 
         // Calculate signature using HMAC-SHA1
         let credentials = self.config().credentials();
@@ -91,10 +92,7 @@ impl Authorization for Client {
 
         // Add Host header
         if !bucket.is_empty() {
-            headers.insert(
-                "Host".into(),
-                vec![format!("{}.{}", bucket, endpoint)],
-            );
+            headers.insert("Host".into(), vec![format!("{}.{}", bucket, endpoint)]);
         } else {
             headers.insert("Host".into(), vec![endpoint.to_string()]);
         }
@@ -103,28 +101,19 @@ impl Authorization for Client {
         prepare_date_header(&mut headers, signature_type);
 
         // Build canonicalized resource with query parameters
-        let full_canonicalized_resource = build_canonicalized_resource(
-            canonicalized_resource,
-            &params,
-        );
+        let full_canonicalized_resource =
+            build_canonicalized_resource(canonicalized_resource, &params);
 
         // Calculate signature
         let sign = self.signature(method, headers.clone(), full_canonicalized_resource)?;
 
         // Build Authorization header
         let credentials = self.config().credentials();
-        let auth_value = format!(
-            "OBS {}:{}",
-            credentials.access_key_id(),
-            sign
-        );
+        let auth_value = format!("OBS {}:{}", credentials.access_key_id(), sign);
 
         // Build final headers
         let mut result_headers = HeaderMap::new();
-        result_headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&auth_value).unwrap(),
-        );
+        result_headers.insert("Authorization", HeaderValue::from_str(&auth_value).unwrap());
 
         for (key, values) in headers.iter() {
             let header_name = HeaderName::from_str(key).unwrap();
@@ -229,10 +218,7 @@ fn get_header_value(headers: &HashMap<String, Vec<String>>, key: &str) -> String
 /// 2. Sort headers by name in dictionary order
 /// 3. For x-obs-meta-* headers, trim the value
 /// 4. Format as "header-name:header-value\n"
-fn build_canonicalized_headers(
-    headers: &HashMap<String, Vec<String>>,
-    prefix: &str,
-) -> String {
+fn build_canonicalized_headers(headers: &HashMap<String, Vec<String>>, prefix: &str) -> String {
     let mut obs_headers: Vec<(String, String)> = headers
         .iter()
         .filter(|(key, _)| {
@@ -243,7 +229,11 @@ fn build_canonicalized_headers(
             let key_lower = key.to_lowercase();
             let value = if key_lower.starts_with(&format!("{}meta-", prefix)) {
                 // For meta headers, trim each value
-                values.iter().map(|v| v.trim()).collect::<Vec<_>>().join(",")
+                values
+                    .iter()
+                    .map(|v| v.trim())
+                    .collect::<Vec<_>>()
+                    .join(",")
             } else {
                 values.join(",")
             };
@@ -268,18 +258,13 @@ fn build_canonicalized_headers(
 /// ```text
 /// CanonicalizedResource = "/" + bucket + "/" + object + "?" + sub-resources
 /// ```
-fn build_canonicalized_resource(
-    mut resource: String,
-    params: &HashMap<String, String>,
-) -> String {
+fn build_canonicalized_resource(mut resource: String, params: &HashMap<String, String>) -> String {
     // Process query parameters (sub-resources)
     let sub_resources = crate::config::SUB_RESOURCES.as_slice();
 
     let mut resource_params: Vec<(&String, &String)> = params
         .iter()
-        .filter(|(key, _)| {
-            sub_resources.contains(&key.as_str()) || key.starts_with("x-obs-")
-        })
+        .filter(|(key, _)| sub_resources.contains(&key.as_str()) || key.starts_with("x-obs-"))
         .collect();
 
     // Sort by parameter name
@@ -312,7 +297,7 @@ fn prepare_date_header(headers: &mut HashMap<String, Vec<String>>, signature_typ
     // Find x-obs-date or x-amz-date header (case-insensitive)
     let obs_date_key = headers.keys().find(|k| k.to_lowercase() == "x-obs-date");
     let amz_date_key = headers.keys().find(|k| k.to_lowercase() == "x-amz-date");
-    
+
     let date_key = obs_date_key.or(amz_date_key).cloned();
 
     if let Some(key) = date_key {
@@ -362,17 +347,16 @@ mod tests {
     #[test]
     fn test_build_string_to_sign() {
         let mut headers = HashMap::new();
-        headers.insert("content-md5".into(), vec!["d41d8cd98f00b204e9800998ecf8427e".into()]);
+        headers.insert(
+            "content-md5".into(),
+            vec!["d41d8cd98f00b204e9800998ecf8427e".into()],
+        );
         headers.insert("content-type".into(), vec!["text/plain".into()]);
         headers.insert("date".into(), vec!["Sat, 12 Oct 2015 08:12:38 GMT".into()]);
         headers.insert("x-obs-acl".into(), vec!["public-read".into()]);
 
-        let string_to_sign = build_string_to_sign(
-            "PUT",
-            headers,
-            "/bucket-test/object-test?acl".into(),
-            true,
-        );
+        let string_to_sign =
+            build_string_to_sign("PUT", headers, "/bucket-test/object-test?acl".into(), true);
 
         assert!(string_to_sign.contains("PUT"));
         assert!(string_to_sign.contains("d41d8cd98f00b204e9800998ecf8427e"));
@@ -396,7 +380,10 @@ mod tests {
         let mut headers = HashMap::new();
         headers.insert("x-obs-acl".into(), vec!["public-read".into()]);
         headers.insert("x-obs-meta-key1".into(), vec!["value1".into()]);
-        headers.insert("x-obs-meta-key2".into(), vec!["value2".into(), "value3".into()]);
+        headers.insert(
+            "x-obs-meta-key2".into(),
+            vec!["value2".into(), "value3".into()],
+        );
 
         let result = build_canonicalized_headers(&headers, "x-obs-");
 

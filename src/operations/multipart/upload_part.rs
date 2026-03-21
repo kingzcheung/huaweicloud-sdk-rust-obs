@@ -89,9 +89,11 @@ impl UploadPartFluentBuilder {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
         let upload_id = &self.inner.upload_id;
-        
+
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -100,7 +102,9 @@ impl UploadPartFluentBuilder {
             return Err(ObsError::InvalidInput("upload ID is required".to_string()));
         }
         if self.inner.part_number < 1 || self.inner.part_number > 10000 {
-            return Err(ObsError::InvalidInput("part number must be between 1 and 10000".to_string()));
+            return Err(ObsError::InvalidInput(
+                "part number must be between 1 and 10000".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
@@ -136,18 +140,28 @@ impl UploadPartFluentBuilder {
         }
 
         // Handle body
-        let body = self.inner.body.ok_or_else(|| ObsError::InvalidInput("body is required".to_string()))?;
+        let body = self
+            .inner
+            .body
+            .ok_or_else(|| ObsError::InvalidInput("body is required".to_string()))?;
 
         match body {
             UploadPartBody::Bytes(bytes) => {
                 let resp = self
                     .client
-                    .do_request(Method::PUT, Some(bucket), Some(key), Some(headers), Some(params), Some(bytes))
+                    .do_request(
+                        Method::PUT,
+                        Some(bucket),
+                        Some(key),
+                        Some(headers),
+                        Some(params),
+                        Some(bytes),
+                    )
                     .await?;
 
                 let status = resp.status();
                 let headers_resp = resp.headers().clone();
-                
+
                 if !status.is_success() {
                     let text = resp.text().await?;
                     return Err(ObsError::service_error(status, &text));
@@ -167,12 +181,19 @@ impl UploadPartFluentBuilder {
             UploadPartBody::Stream(stream) => {
                 let resp = self
                     .client
-                    .do_request_streaming(Method::PUT, Some(bucket), Some(key), Some(headers), Some(params), Some(stream))
+                    .do_request_streaming(
+                        Method::PUT,
+                        Some(bucket),
+                        Some(key),
+                        Some(headers),
+                        Some(params),
+                        Some(stream),
+                    )
                     .await?;
 
                 let status = resp.status();
                 let headers_resp = resp.headers().clone();
-                
+
                 if !status.is_success() {
                     let text = resp.text().await?;
                     return Err(ObsError::service_error(status, &text));

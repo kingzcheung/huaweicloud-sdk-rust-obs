@@ -38,8 +38,7 @@ impl ListBucketsFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: ListAllMyBucketsResult =
-            crate::xml_utils::from_xml(&text)?;
+        let result: ListAllMyBucketsResult = crate::xml_utils::from_xml(&text)?;
 
         Ok(ListBucketsOutput::from(result))
     }
@@ -183,7 +182,9 @@ impl CreateBucketFluentBuilder {
     pub async fn send(&self) -> Result<CreateBucketOutput> {
         let bucket = &self.inner.bucket;
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
 
         let default_location = self.client.config().region().name().to_string();
@@ -200,7 +201,14 @@ impl CreateBucketFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::PUT, Some(bucket), None, None, None, Some(body.into_bytes()))
+            .do_request(
+                Method::PUT,
+                Some(bucket),
+                None,
+                None,
+                None,
+                Some(body.into_bytes()),
+            )
             .await?;
 
         let status = resp.status();
@@ -271,7 +279,9 @@ impl DeleteBucketFluentBuilder {
     pub async fn send(&self) -> Result<DeleteBucketOutput> {
         let bucket = &self.inner.bucket;
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
 
         let resp = self
@@ -329,7 +339,9 @@ impl GetBucketLocationFluentBuilder {
     pub async fn send(&self) -> Result<GetBucketLocationOutput> {
         let bucket = &self.inner.bucket;
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
@@ -347,8 +359,7 @@ impl GetBucketLocationFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: Location =
-            crate::xml_utils::from_xml(&text)?;
+        let result: Location = crate::xml_utils::from_xml(&text)?;
 
         Ok(GetBucketLocationOutput {
             location: result.location,
@@ -442,11 +453,16 @@ impl ListObjectsFluentBuilder {
     pub async fn send(&self) -> Result<ListObjectsOutput> {
         let bucket = &self.inner.bucket;
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
-        params.insert("delimiter".to_string(), self.inner.delimiter.as_deref().unwrap_or("/").to_string());
+        params.insert(
+            "delimiter".to_string(),
+            self.inner.delimiter.as_deref().unwrap_or("/").to_string(),
+        );
 
         if let Some(ref marker) = self.inner.marker {
             params.insert("marker".to_string(), marker.clone());
@@ -472,8 +488,7 @@ impl ListObjectsFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: ListBucketResult =
-            crate::xml_utils::from_xml(&text)?;
+        let result: ListBucketResult = crate::xml_utils::from_xml(&text)?;
 
         Ok(ListObjectsOutput::from(result))
     }
@@ -725,7 +740,9 @@ impl ListObjectsV2FluentBuilder {
     pub async fn send(&self) -> Result<ListObjectsV2Output> {
         let bucket = &self.inner.bucket;
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
@@ -764,8 +781,7 @@ impl ListObjectsV2FluentBuilder {
         }
 
         // Parse V2 response (similar to V1 but with different fields)
-        let result: ListBucketResult =
-            crate::xml_utils::from_xml(&text)?;
+        let result: ListBucketResult = crate::xml_utils::from_xml(&text)?;
 
         Ok(ListObjectsV2Output::from(result))
     }

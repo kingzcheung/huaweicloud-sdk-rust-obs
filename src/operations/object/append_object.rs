@@ -62,7 +62,9 @@ impl AppendObjectFluentBuilder {
         let key = &self.inner.key;
 
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -81,15 +83,19 @@ impl AppendObjectFluentBuilder {
         );
 
         if let Some(ref content_type) = self.inner.content_type {
-            headers.insert(
-                "Content-Type",
-                HeaderValue::from_str(content_type).unwrap(),
-            );
+            headers.insert("Content-Type", HeaderValue::from_str(content_type).unwrap());
         }
 
         let resp = self
             .client
-            .do_request(Method::POST, Some(bucket), Some(key), Some(headers), Some(params), Some(body))
+            .do_request(
+                Method::POST,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                Some(params),
+                Some(body),
+            )
             .await?;
 
         let status = resp.status();

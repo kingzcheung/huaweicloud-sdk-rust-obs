@@ -45,7 +45,11 @@ impl DeleteObjectsFluentBuilder {
     }
 
     /// Add an object with version to delete.
-    pub fn key_with_version(mut self, key: impl Into<String>, version_id: impl Into<String>) -> Self {
+    pub fn key_with_version(
+        mut self,
+        key: impl Into<String>,
+        version_id: impl Into<String>,
+    ) -> Self {
         self.inner.objects.push(DeleteObjectRequest {
             key: key.into(),
             version_id: Some(version_id.into()),
@@ -83,13 +87,19 @@ impl DeleteObjectsFluentBuilder {
         let bucket = &self.inner.bucket;
 
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if self.inner.objects.is_empty() {
-            return Err(ObsError::InvalidInput("at least one object key is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "at least one object key is required".to_string(),
+            ));
         }
         if self.inner.objects.len() > 1000 {
-            return Err(ObsError::InvalidInput("maximum 1000 objects can be deleted in one request".to_string()));
+            return Err(ObsError::InvalidInput(
+                "maximum 1000 objects can be deleted in one request".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
@@ -230,7 +240,10 @@ pub struct DeletedObject {
     version_id: Option<String>,
     #[serde(rename = "DeleteMarker", skip_serializing_if = "Option::is_none")]
     delete_marker: Option<bool>,
-    #[serde(rename = "DeleteMarkerVersionId", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "DeleteMarkerVersionId",
+        skip_serializing_if = "Option::is_none"
+    )]
     delete_marker_version_id: Option<String>,
 }
 

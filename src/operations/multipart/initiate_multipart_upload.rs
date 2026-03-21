@@ -198,9 +198,11 @@ impl InitiateMultipartUploadFluentBuilder {
     pub async fn send(&self) -> Result<InitiateMultipartUploadOutput> {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
-        
+
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -280,7 +282,9 @@ impl InitiateMultipartUploadFluentBuilder {
         }
 
         if let Some(enabled) = self.inner.bucket_key_enabled {
-            if let Ok(value) = reqwest::header::HeaderValue::from_str(if enabled { "true" } else { "false" }) {
+            if let Ok(value) =
+                reqwest::header::HeaderValue::from_str(if enabled { "true" } else { "false" })
+            {
                 headers.insert("x-obs-server-side-encryption-bucket-key-enabled", value);
             }
         }
@@ -356,7 +360,14 @@ impl InitiateMultipartUploadFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::POST, Some(bucket), Some(key), Some(headers), Some(params), None)
+            .do_request(
+                Method::POST,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                Some(params),
+                None,
+            )
             .await?;
 
         let status = resp.status();
@@ -366,8 +377,7 @@ impl InitiateMultipartUploadFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: InitiateMultipartUploadResultXml =
-            crate::xml_utils::from_xml(&text)?;
+        let result: InitiateMultipartUploadResultXml = crate::xml_utils::from_xml(&text)?;
 
         Ok(InitiateMultipartUploadOutput::from(result))
     }

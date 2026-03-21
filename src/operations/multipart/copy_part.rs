@@ -139,9 +139,11 @@ impl CopyPartFluentBuilder {
         let bucket = &self.inner.bucket;
         let key = &self.inner.key;
         let upload_id = &self.inner.upload_id;
-        
+
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -150,10 +152,14 @@ impl CopyPartFluentBuilder {
             return Err(ObsError::InvalidInput("upload ID is required".to_string()));
         }
         if self.inner.part_number < 1 || self.inner.part_number > 10000 {
-            return Err(ObsError::InvalidInput("part number must be between 1 and 10000".to_string()));
+            return Err(ObsError::InvalidInput(
+                "part number must be between 1 and 10000".to_string(),
+            ));
         }
         if self.inner.copy_source.is_none() {
-            return Err(ObsError::InvalidInput("copy source is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "copy source is required".to_string(),
+            ));
         }
 
         let mut params = HashMap::new();
@@ -198,19 +204,28 @@ impl CopyPartFluentBuilder {
         // SSE-C headers for source
         if let Some(ref algorithm) = self.inner.copy_source_ssec_customer_algorithm {
             if let Ok(value) = reqwest::header::HeaderValue::from_str(algorithm) {
-                headers.insert("x-obs-copy-source-server-side-encryption-customer-algorithm", value);
+                headers.insert(
+                    "x-obs-copy-source-server-side-encryption-customer-algorithm",
+                    value,
+                );
             }
         }
 
         if let Some(ref key) = self.inner.copy_source_ssec_customer_key {
             if let Ok(value) = reqwest::header::HeaderValue::from_str(key) {
-                headers.insert("x-obs-copy-source-server-side-encryption-customer-key", value);
+                headers.insert(
+                    "x-obs-copy-source-server-side-encryption-customer-key",
+                    value,
+                );
             }
         }
 
         if let Some(ref md5) = self.inner.copy_source_ssec_customer_key_md5 {
             if let Ok(value) = reqwest::header::HeaderValue::from_str(md5) {
-                headers.insert("x-obs-copy-source-server-side-encryption-customer-key-MD5", value);
+                headers.insert(
+                    "x-obs-copy-source-server-side-encryption-customer-key-MD5",
+                    value,
+                );
             }
         }
 
@@ -241,7 +256,14 @@ impl CopyPartFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::PUT, Some(bucket), Some(key), Some(headers), Some(params), None)
+            .do_request(
+                Method::PUT,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                Some(params),
+                None,
+            )
             .await?;
 
         let status = resp.status();
@@ -251,8 +273,7 @@ impl CopyPartFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: CopyPartResultXml =
-            crate::xml_utils::from_xml(&text)?;
+        let result: CopyPartResultXml = crate::xml_utils::from_xml(&text)?;
 
         Ok(CopyPartOutput::from(result, self.inner.part_number))
     }

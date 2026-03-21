@@ -97,7 +97,9 @@ impl PutObjectFluentBuilder {
         let key = &self.inner.key;
 
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
@@ -129,19 +131,13 @@ impl PutObjectFluentBuilder {
                 Some(stream)
             }
             None => {
-                headers.insert(
-                    "Content-Length",
-                    HeaderValue::from_str("0").unwrap(),
-                );
+                headers.insert("Content-Length", HeaderValue::from_str("0").unwrap());
                 None
             }
         };
 
         if let Some(ref content_type) = self.inner.content_type {
-            headers.insert(
-                "Content-Type",
-                HeaderValue::from_str(content_type).unwrap(),
-            );
+            headers.insert("Content-Type", HeaderValue::from_str(content_type).unwrap());
         }
 
         if let Some(ref content_encoding) = self.inner.content_encoding {
@@ -182,7 +178,14 @@ impl PutObjectFluentBuilder {
 
         let resp = self
             .client
-            .do_request_streaming(Method::PUT, Some(bucket), Some(key), Some(headers), None, body)
+            .do_request_streaming(
+                Method::PUT,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                None,
+                body,
+            )
             .await?;
 
         let status = resp.status();

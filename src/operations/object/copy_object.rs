@@ -61,13 +61,17 @@ impl CopyObjectFluentBuilder {
         let key = &self.inner.key;
 
         if bucket.is_empty() {
-            return Err(ObsError::InvalidInput("bucket name is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "bucket name is required".to_string(),
+            ));
         }
         if key.is_empty() {
             return Err(ObsError::InvalidInput("object key is required".to_string()));
         }
         if self.inner.copy_source.is_empty() {
-            return Err(ObsError::InvalidInput("copy source is required".to_string()));
+            return Err(ObsError::InvalidInput(
+                "copy source is required".to_string(),
+            ));
         }
 
         let mut headers = HeaderMap::new();
@@ -83,10 +87,7 @@ impl CopyObjectFluentBuilder {
         );
 
         if let Some(ref content_type) = self.inner.content_type {
-            headers.insert(
-                "Content-Type",
-                HeaderValue::from_str(content_type).unwrap(),
-            );
+            headers.insert("Content-Type", HeaderValue::from_str(content_type).unwrap());
         }
 
         if let Some(ref storage_class) = self.inner.storage_class {
@@ -98,7 +99,14 @@ impl CopyObjectFluentBuilder {
 
         let resp = self
             .client
-            .do_request(Method::PUT, Some(bucket), Some(key), Some(headers), None, None)
+            .do_request(
+                Method::PUT,
+                Some(bucket),
+                Some(key),
+                Some(headers),
+                None,
+                None,
+            )
             .await?;
 
         let status = resp.status();
@@ -108,8 +116,7 @@ impl CopyObjectFluentBuilder {
             return Err(ObsError::service_error(status, &text));
         }
 
-        let result: CopyObjectResult =
-            crate::xml_utils::from_xml(&text)?;
+        let result: CopyObjectResult = crate::xml_utils::from_xml(&text)?;
 
         Ok(CopyObjectOutput {
             etag: result.etag,
