@@ -1,21 +1,21 @@
 [package]
 name = "huaweicloud-sdk-rust-obs"
-description = "huaweicloud obs rust sdk"
+description = "Huawei Cloud OBS Rust SDK - AWS SDK style API"
 authors = ["KingzCheung <kingzcheung@gmail.com>"]
-version = "0.2.4"
+version = "1.0.0"
 edition = "2021"
 readme = "README.md"
 license-file = "LICENSE-APACHE-2.0"
 homepage = "https://github.com/kingzcheung/huaweicloud-sdk-rust-obs"
 repository = "https://github.com/kingzcheung/huaweicloud-sdk-rust-obs"
 keywords = [
-    "obs","huaweicloud","sdk"
+    "obs", "huaweicloud", "sdk", "object-storage", "aws-style"
 ]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories = ["api-bindings", "web-programming"]
 
 [dependencies]
-tokio = {version = "1.49.0", features = ["full"]}
-reqwest = {version = "0.13.1", features = ["json"]}
+tokio = { version = "1.49.0", features = ["full"] }
+reqwest = { version = "0.13.1", features = ["json", "stream"] }
 thiserror = "2.0.18"
 urlencoding = "2.1.2"
 chrono = "0.4.43"
@@ -28,6 +28,13 @@ serde_json = "1.0.149"
 async-trait = "0.1.68"
 lazy_static = "1.4.0"
 md-5 = "0.10.5"
+tracing = "0.1.41"
+futures = "0.3.31"
+pin-project-lite = "0.2.16"
 
 [target.'cfg(unix)'.dependencies]
 dotenvy = "0.15.7"
+
+[dev-dependencies]
+tokio-test = "0.4.4"
+wiremock = "0.6.2"
