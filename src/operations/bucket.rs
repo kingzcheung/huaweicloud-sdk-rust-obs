@@ -39,7 +39,7 @@ impl ListBucketsFluentBuilder {
         }
 
         let result: ListAllMyBucketsResult =
-            serde_xml_rs::from_str(&text).map_err(|e| ObsError::XmlParse(e.to_string()))?;
+            crate::xml_utils::from_xml(&text)?;
 
         Ok(ListBucketsOutput::from(result))
     }
@@ -196,8 +196,7 @@ impl CreateBucketFluentBuilder {
         let xml = CreateBucketConfiguration {
             location: location.to_string(),
         };
-        let body = serde_xml_rs::to_string(&xml)
-            .map_err(|e| ObsError::Serialization(e.to_string()))?;
+        let body = crate::xml_utils::to_xml(&xml)?;
 
         let resp = self
             .client
@@ -349,7 +348,7 @@ impl GetBucketLocationFluentBuilder {
         }
 
         let result: Location =
-            serde_xml_rs::from_str(&text).map_err(|e| ObsError::XmlParse(e.to_string()))?;
+            crate::xml_utils::from_xml(&text)?;
 
         Ok(GetBucketLocationOutput {
             location: result.location,
@@ -377,8 +376,9 @@ impl GetBucketLocationOutput {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "LocationConstraint")]
 struct Location {
-    #[serde(rename = "Location")]
+    #[serde(rename = "$text")]
     location: String,
 }
 
@@ -473,7 +473,7 @@ impl ListObjectsFluentBuilder {
         }
 
         let result: ListBucketResult =
-            serde_xml_rs::from_str(&text).map_err(|e| ObsError::XmlParse(e.to_string()))?;
+            crate::xml_utils::from_xml(&text)?;
 
         Ok(ListObjectsOutput::from(result))
     }
@@ -765,7 +765,7 @@ impl ListObjectsV2FluentBuilder {
 
         // Parse V2 response (similar to V1 but with different fields)
         let result: ListBucketResult =
-            serde_xml_rs::from_str(&text).map_err(|e| ObsError::XmlParse(e.to_string()))?;
+            crate::xml_utils::from_xml(&text)?;
 
         Ok(ListObjectsV2Output::from(result))
     }

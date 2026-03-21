@@ -109,7 +109,7 @@ impl CopyObjectFluentBuilder {
         }
 
         let result: CopyObjectResult =
-            serde_xml_rs::from_str(&text).map_err(|e| ObsError::XmlParse(e.to_string()))?;
+            crate::xml_utils::from_xml(&text)?;
 
         Ok(CopyObjectOutput {
             etag: result.etag,

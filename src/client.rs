@@ -227,6 +227,16 @@ impl Client {
         AppendObjectFluentBuilder::new(self.clone())
     }
 
+    /// Set object ACL.
+    pub fn set_object_acl(&self) -> SetObjectAclFluentBuilder {
+        SetObjectAclFluentBuilder::new(self.clone())
+    }
+
+    /// Get object ACL.
+    pub fn get_object_acl(&self) -> GetObjectAclFluentBuilder {
+        GetObjectAclFluentBuilder::new(self.clone())
+    }
+
     // ========================================
     // Internal Methods
     // ========================================

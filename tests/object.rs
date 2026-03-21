@@ -581,3 +581,84 @@ async fn test_delete_objects_with_nonexistent() -> Result<(), ObsError> {
 
     Ok(())
 }
+
+/// 测试对象 ACL 操作
+#[tokio::test]
+async fn test_object_acl() -> Result<(), ObsError> {
+    let obs = common::setup()?;
+    let bucket = env::var("OBS_BUCKET").expect("OBS_BUCKET must be set");
+    let key = format!("test-acl-{}.txt", chrono::Utc::now().timestamp_millis());
+
+    // 1. 创建一个对象
+    obs.put_object()
+        .bucket(&bucket)
+        .key(&key)
+        .body(b"test content for acl".to_vec())
+        .content_type("text/plain")
+        .send()
+        .await?;
+
+    println!("Created object: {}", key);
+
+    // 2. 获取对象 ACL（默认 ACL）
+    let acl_result = obs.get_object_acl()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    println!("Get object ACL:");
+    println!("  Owner ID: {}", acl_result.owner().id());
+    println!("  Delivered: {}", acl_result.delivered());
+    println!("  Grants count: {}", acl_result.grants().len());
+
+    // 验证默认 ACL 有至少一个 grant（owner 有 FULL_CONTROL）
+    assert!(!acl_result.grants().is_empty(), "Default ACL should have at least one grant");
+
+    for grant in acl_result.grants() {
+        println!("  Grant:");
+        if let Some(id) = grant.grantee.id() {
+            println!("    Grantee ID: {}", id);
+        }
+        if let Some(canned) = grant.grantee.canned() {
+            println!("    Grantee Canned: {:?}", canned);
+        }
+        println!("    Permission: {:?}", grant.permission);
+    }
+
+    // 3. 设置对象 ACL（使用预定义 ACL）
+    // 注意：实际测试可能需要根据您的 OBS 配置调整
+    let set_result = obs.set_object_acl()
+        .bucket(&bucket)
+        .key(&key)
+        .canned_acl("private")
+        .send()
+        .await?;
+
+    println!("Set object ACL to private");
+    if let Some(version_id) = set_result.version_id() {
+        println!("  Version ID: {}", version_id);
+    }
+
+    // 4. 再次获取 ACL 验证设置成功
+    let acl_result2 = obs.get_object_acl()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    println!("Get object ACL after set:");
+    println!("  Owner ID: {}", acl_result2.owner().id());
+    println!("  Grants count: {}", acl_result2.grants().len());
+
+    // 5. 清理
+    obs.delete_object()
+        .bucket(&bucket)
+        .key(&key)
+        .send()
+        .await?;
+
+    println!("Deleted object: {}", key);
+
+    Ok(())
+}

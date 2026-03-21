@@ -101,8 +101,7 @@ impl DeleteObjectsFluentBuilder {
             object: self.inner.objects.clone(),
         };
 
-        let body = serde_xml_rs::to_string(&delete)
-            .map_err(|e| ObsError::Serialization(e.to_string()))?;
+        let body = crate::xml_utils::to_xml(&delete)?;
 
         let mut hasher = Md5::new();
         hasher.update(body.as_bytes());
@@ -136,8 +135,7 @@ impl DeleteObjectsFluentBuilder {
 
         // Parse the response
         let text = resp.text().await?;
-        let result: DeleteResult = serde_xml_rs::from_str(&text)
-            .map_err(|e| ObsError::XmlParse(e.to_string()))?;
+        let result: DeleteResult = crate::xml_utils::from_xml(&text)?;
 
         Ok(DeleteObjectsOutput {
             deleted: result.deleted,
