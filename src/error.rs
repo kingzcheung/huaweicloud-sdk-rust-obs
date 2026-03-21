@@ -84,7 +84,7 @@ impl ObsError {
     /// Create a new service error from a response.
     pub fn service_error(status: StatusCode, body: &str) -> Self {
         // Try to parse the error response
-        match serde_xml_rs::from_str::<ErrorResponse>(body) {
+        match crate::xml_utils::from_xml::<ErrorResponse>(body) {
             Ok(err) => ObsError::ServiceError {
                 status,
                 code: Some(err.code),

@@ -87,6 +87,7 @@ pub mod client;
 pub mod config;
 pub mod error;
 pub mod operations;
+mod xml_utils;
 
 // Re-export main types for convenience
 pub use client::{Client, ClientBuilder};
