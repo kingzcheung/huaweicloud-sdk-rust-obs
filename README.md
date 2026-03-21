@@ -4,11 +4,13 @@
 [![Documentation](https://docs.rs/huaweicloud-sdk-rust-obs/badge.svg)](https://docs.rs/huaweicloud-sdk-rust-obs)
 [![License](https://img.shields.io/badge/license-Apache--2.0%2FMIT-blue.svg)](LICENSE-APACHE-2.0)
 
-A Rust SDK for Huawei Cloud Object Storage Service (OBS), following **AWS SDK style API design**.
+An **unofficial** Rust SDK for Huawei Cloud Object Storage Service (OBS).
+
+English | [简体中文](README_zh-CN.md)
 
 ## Features
 
-- 🚀 **AWS SDK Style API** - Fluent builder pattern for all operations
+- 🚀 **Fluent Builder API** - Fluent builder pattern for all operations
 - ⚡ **Async/Await** - Built on Tokio for high-performance async I/O
 - 🔒 **Type Safe** - Strong typing for all inputs and outputs
 - 📦 **Comprehensive** - Support for bucket and object operations
@@ -241,6 +243,7 @@ See the [`examples/`](examples/) directory for more examples:
 - [`pub_object.rs`](examples/pub_object.rs) - Upload an object
 - [`get_object.rs`](examples/get_object.rs) - Download an object
 - [`streaming_upload.rs`](examples/streaming_upload.rs) - Streaming upload for large files
+- [`multipart_upload.rs`](examples/multipart_upload.rs) - Multipart upload for large files
 
 ## Error Handling
 
@@ -306,7 +309,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ### v1.0.0
 
-- **Breaking Change**: Complete API redesign following AWS SDK style
+- **Breaking Change**: Complete API redesign with fluent builder pattern
 - Added fluent builder pattern for all operations
 - Added comprehensive type-safe input/output types
 - Improved error handling with detailed error types

@@ -1,7 +1,7 @@
-//! Operations module - AWS SDK style fluent builders for OBS operations.
+//! Operations module - fluent builders for OBS operations.
 //!
-//! This module provides fluent builders for each OBS operation, following
-//! the AWS SDK pattern where each operation has:
+//! This module provides fluent builders for each OBS operation, where
+//! each operation has:
 //! - A fluent builder for constructing the request
 //! - An input type for the request parameters
 //! - An output type for the response data
